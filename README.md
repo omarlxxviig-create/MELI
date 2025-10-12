@@ -1,16 +1,73 @@
-# Inventory Service — Optimización de Sistema Distribuido
+# Inventory Service — Sistema Distribuido de Gestión de Inventario
+
+## 📝 ¿Qué es este proyecto?
+
+**Inventory Service** es un microservicio de ejemplo para la gestión distribuida de inventario, diseñado para entornos de alta concurrencia y consistencia eventual.  
+Permite reservar, confirmar y liberar stock de productos en múltiples tiendas, optimizando la disponibilidad y la resiliencia ante fallos.  
+Incluye patrones modernos como Outbox, Kafka, métricas Prometheus, y locking optimista para demostrar buenas prácticas en sistemas distribuidos.
+
+**Arquitectura**: Este proyecto implementa **Arquitectura Hexagonal** (Ports & Adapters) para mantener el dominio desacoplado de la infraestructura. Ver [documentación completa de arquitectura](docs/HEXAGONAL_ARCHITECTURE.md).
+
+---
+
+## 📚 Índice
+
+1. [Resumen](#resumen)
+2. [Arquitectura](#arquitectura)
+3. [Stack Técnico](#stack-técnico)
+4. [Cómo Ejecutar](#cómo-ejecutar-localmente)
+5. [API y Ejemplos](#api-documentation)
+6. [Monitoreo y Métricas](#monitoreo)
+7. [Decisiones y Trade-offs](#trade-offs-y-decisiones)
+8. [Limitaciones y Roadmap](#limitaciones-y-próximos-pasos)
+9. [Diagramas](#diagramas-de-arquitectura)
+10. [Pruebas](#pruebas)
+11. [Colección Postman](#colección-postman)
+12. [Repositorio](#repositorio)
+
+---
 
 ## 📌 Resumen
 
 Este proyecto es un prototipo de un **sistema distribuido de gestión de inventario** desarrollado en **Java 17 / Spring Boot** con arquitectura hexagonal.  
 Demuestra mejoras en:
 
-- **Consistencia**: uso del **patrón Outbox + Kafka** con idempotencia.
-- **Latencia reducida**: flujo de eventos en tiempo real.
-- **Observabilidad**: métricas vía Micrometer + Prometheus + Grafana.
-- **Seguridad básica**: endpoints actuator limitados al entorno local.
+- **Arquitectura Hexagonal**: Separación clara entre dominio, aplicación e infraestructura
+- **Consistencia eventual**: patrón Outbox + Kafka + idempotencia.
+- **Latencia baja**: eventos en tiempo real.
+- **Observabilidad**: métricas con Micrometer, Prometheus y Grafana.
+- **Seguridad básica**: endpoints protegidos y limitados al entorno local.
 
-## ⚙️ Stack técnico
+---
+
+## 🏗️ Arquitectura
+
+Este proyecto sigue los principios de **Arquitectura Hexagonal** con tres capas claramente definidas:
+
+### 📦 Capas
+
+1. **Domain (Núcleo)**: Lógica de negocio pura, sin dependencias externas
+
+   - Modelos: `Product`, `StoreInventory`, `Reservation`, `OutboxMessage`
+   - Puertos: Interfaces que definen contratos (`InventoryPort`, `ProductPort`, etc.)
+
+2. **Application (Orquestación)**: Casos de uso que coordinan el dominio
+
+   - `InventoryUseCase`: Gestión de reservas
+   - `ProductService`: Gestión de productos
+   - DTOs de aplicación
+
+3. **Infrastructure (Adaptadores)**: Implementaciones técnicas
+   - REST Controllers
+   - Adaptadores JPA
+   - Publicador Kafka
+   - Métricas
+
+**Ver documentación detallada**: [docs/HEXAGONAL_ARCHITECTURE.md](docs/HEXAGONAL_ARCHITECTURE.md)
+
+---
+
+## ⚙️ Stack Técnico
 
 - **Java 17 / Spring Boot 3**
 - **H2 Database** (memoria) + JPA
@@ -18,6 +75,8 @@ Demuestra mejoras en:
 - **Prometheus + Grafana + Alertmanager** (monitoring)
 - **JUnit 5 + Mockito** (tests)
 - **Docker Compose** para orquestación
+
+---
 
 ## 🚀 Cómo ejecutar localmente
 
@@ -46,8 +105,6 @@ Servicios disponibles:
 - Kafka: localhost:9092
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (admin/admin)
-  - Dashboard preconfigurado para métricas de inventario
-  - Alertas configuradas para stock bajo y errores
 - AlertManager: http://localhost:9093
 
 ### 3. Iniciar la Aplicación
@@ -55,6 +112,8 @@ Servicios disponibles:
 ```bash
 ./mvnw spring-boot:run
 ```
+
+---
 
 ## API Documentation
 
@@ -65,83 +124,53 @@ La documentación OpenAPI está disponible en:
 
 ### Ejemplos de Uso
 
-#### 1. Crear Reserva
+#### Crear Reserva
 
 ```bash
 curl --location 'http://localhost:8080/inventory/reserve' \
 --header 'Content-Type: application/json' \
---data '{
-  "storeId": "store-001",
-  "productId": "sku-100",
-  "quantity": 2,
-  "transactionId": "tx-123"
-}'
-
-# Respuesta Exitosa:
-{
-  "reservationId": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "PENDING",
-  "expiresAt": "2024-01-24T12:34:56.789Z"
-}
+--data '{ "storeId": "store-001", "productId": "sku-100", "quantity": 2, "transactionId": "tx-123" }'
 ```
 
-#### 2. Confirmar Reserva
+#### Confirmar Reserva
 
 ```bash
-curl --location --request POST 'http://localhost:8080/inventory/commit?reservationId=550e8400-e29b-41d4-a716-446655440000'
-
-# Respuesta: 200 OK
+curl --location --request POST 'http://localhost:8080/inventory/commit?reservationId=...'
 ```
 
-#### 3. Liberar Reserva
+#### Liberar Reserva
 
 ```bash
 curl --location --request POST 'http://localhost:8080/inventory/release' \
 --header 'Content-Type: application/json' \
---data '{
-  "reservationId": "550e8400-e29b-41d4-a716-446655440000",
-  "reason": "customer_cancelled"
-}'
-
-# Respuesta: 200 OK
+--data '{ "reservationId": "...", "reason": "customer_cancelled" }'
 ```
 
-#### 4. Consultar Inventario
+#### Consultar Inventario
 
 ```bash
 curl --location 'http://localhost:8080/inventory'
-
-# Respuesta:
-[
-  {
-    "storeId": "store-001",
-    "productId": "sku-100",
-    "totalQuantity": 100,
-    "reservedQuantity": 2,
-    "available": 98
-  }
-]
 ```
 
-### Manejo de Errores
+#### Manejo de Errores
 
-#### Stock Insuficiente
+- Stock insuficiente: `{ "message": "Insufficient stock: Available: 5, Requested: 10" }`
+- Producto no encontrado: `{ "message": "Product not found" }`
 
-```json
-{
-  "message": "Insufficient stock: Available: 5, Requested: 10"
-}
-```
+---
 
-#### Producto No Encontrado
+## 🛠️ ¿Qué hace el servicio?
 
-```json
-{
-  "message": "Product not found"
-}
-```
+- **Reserva de inventario**: Permite reservar stock de productos en tiendas específicas, evitando sobreventa.
+- **Confirmación y liberación**: Las reservas pueden confirmarse (checkout) o liberarse (cancelación/expiración).
+- **Consistencia eventual**: Los cambios se publican como eventos en Kafka usando el patrón Outbox, asegurando que otros servicios reciban actualizaciones.
+- **Optimistic Locking**: Evita bloqueos pesados y mejora el rendimiento en escenarios concurrentes.
+- **Métricas y monitoreo**: Expone métricas clave para Prometheus y Grafana, facilitando la observabilidad y alertas.
+- **Expiración automática**: Las reservas pendientes se liberan automáticamente tras un TTL configurable.
 
-## Monitoreo
+---
+
+## 📊 Monitoreo
 
 ### Métricas Disponibles
 
@@ -157,71 +186,51 @@ curl --location 'http://localhost:8080/inventory'
 2024-01-24 12:34:58 WARN  Insufficient stock for reservation
 ```
 
-## Nota Importante sobre Implementación
+---
 
-> **Nota**: La entidad Product aquí es una implementación de ejemplo para la demo/QA. En un sistema real, el Product Service centralizado provee esta información y este servicio sólo almacena productId.
+## 💡 Trade-offs y Decisiones
 
-## Trade-offs y Decisiones
+1. **Consistencia Eventual vs Fuerte**:  
+   Se eligió consistencia eventual para el checkout usando el patrón Outbox.  
+   Beneficio: mejor disponibilidad y escalabilidad.  
+   Costo: ventana de inconsistencia temporal.
 
-1. **Consistencia Eventual vs Fuerte**:
+2. **Optimistic Locking**:  
+   Versioning optimista en lugar de locks pesimistas.  
+   Beneficio: mejor concurrencia y throughput.  
+   Costo: retries ocasionales.
 
-   - Se eligió consistencia eventual para el checkout usando el patrón Outbox
-   - Beneficio: mejor disponibilidad y escalabilidad
-   - Costo: ventana de inconsistencia temporal
+3. **In-Memory Database**:  
+   H2 para prototipado rápido.  
+   Trade-off: simplicidad vs durabilidad.
 
-2. **Optimistic Locking**:
+4. **Implementación de Productos**:  
+   Se incluye entidad Product completa solo para demostración.  
+   En producción: solo referencias a productId.
 
-   - Versioning optimista en lugar de locks pesimistas
-   - Beneficio: mejor concurrencia y throughput
-   - Costo: retries ocasionales
+---
 
-3. **In-Memory Database**:
-
-   - H2 para prototipado rápido
-   - Trade-off: simplicidad vs durabilidad
-
-4. **Implementación de Productos**:
-   - Se incluye entidad Product completa solo para demostración
-   - En producción: solo referencias a productId
-   - Datos de productos se obtendrían vía Product Service
-
-## Limitaciones y Próximos Pasos
+## 🚧 Limitaciones y Próximos Pasos
 
 ### Limitaciones Actuales
 
 - Sin persistencia durable (H2 in-memory)
 - Implementación simplificada de productos (sin integración con Product Service)
 
-### Próximos Pasos
+### Roadmap
 
 1. Migrar a PostgreSQL
-2. Añadir circuit breakers
-3. Añadir rate limiting
-4. Logging estructurado
-5. Healthchecks más robustos
-6. Integrar con Product Service centralizado
-7. Implementar cache de datos de productos
+2. Añadir circuit breakers y rate limiting
+3. Logging estructurado
+4. Healthchecks más robustos
+5. Integrar con Product Service centralizado
+6. Implementar cache de datos de productos
 
-## Documentación Técnica
+---
 
-### Diagramas de Arquitectura
+## 📐 Diagramas de Arquitectura
 
-Los diagramas se generan usando [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli). Para generar los diagramas:
-
-1. Instalar mermaid-cli globalmente:
-
-```bash
-npm install -g @mermaid-js/mermaid-cli
-```
-
-2. Generar el diagrama:
-
-```bash
-# Desde el directorio docs/
-mmdc -i architecture-diagram.mmd -o architecture-diagram.png --scale 4
-```
-
-El diagrama de arquitectura muestra:
+Diagramas generados con [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli):
 
 - Flujo de requests HTTP
 - Procesamiento de comandos
@@ -229,17 +238,12 @@ El diagrama de arquitectura muestra:
 - Job de expiración de reservas
 
 ![Diagrama de Arquitectura](docs/architecture-diagram.png)
-![Diagrama de Secuencia](docs/sequence-diagram.png) - Flujos de interacción principales
+![Diagrama de Secuencia](docs/sequence-diagram.png)
 ![Diagrama de Paquetes](doc/packages-diagram.png)
+![Event Flow](docs/event-flow.png)
+![Data Model](docs/data-model.png)
 
-Los otros diagramas incluyen:
-
-- [Event Flow](docs/event-flow.png) - Flujo de eventos entre servicios
-- [Data Model](docs/data-model.png) - Modelo de datos y relaciones
-
-## Prompts IA
-
-Los prompts utilizados para el desarrollo están documentados en [prompts-used.txt](./prompts-used.txt)
+---
 
 ## 🧪 Pruebas
 
@@ -262,18 +266,46 @@ Los prompts utilizados para el desarrollo están documentados en [prompts-used.t
 ./mvnw test jacoco:report
 ```
 
-### Ver Resultados
-
 - Reporte JUnit: `target/surefire-reports/`
 - Cobertura de código: `target/site/jacoco/index.html`
 
 ### Tipos de Pruebas
 
-1. **Unitarias** (`*Test.java`)
+- **Unitarias**: Casos de uso aislados, mocks de dependencias.
+- **Integración**: Flujos completos, base de datos en memoria.
+- **Carga**: Concurrencia, locking optimista, rendimiento bajo estrés.
+- **API**: Endpoints REST, validación de requests/responses.
 
-   - Casos de uso aislados
-   - Mocks de dependencias
-   - Validación de lógica de negocio
+---
+
+## 📬 Colección Postman
+
+Incluye una colección con todos los endpoints y ejemplos:  
+[MELI.postman_collection.json](MELI.postman_collection.json)
+
+---
+
+## 📦 Repositorio
+
+El código está disponible públicamente en GitHub:  
+https://github.com/o0410acut-spec/MELI
+
+```bash
+git clone https://github.com/o0410acut-spec/MELI.git
+cd MELI
+```
+
+---
+
+## 🛠️ Comando para correr docker compose
+
+```bash
+docker-compose -f docker-compose.yml -f docs/docker-compose-monitoring.yml up -d
+```
+
+- Casos de uso aislados
+- Mocks de dependencias
+- Validación de lógica de negocio
 
 2. **Integración** (`*IntegrationTest.java`)
 
@@ -374,3 +406,5 @@ https://github.com/o0410acut-spec/MELI
 git clone https://github.com/o0410acut-spec/MELI.git
 cd MELI
 ```
+
+# Comando para correr docker compose

@@ -1,9 +1,8 @@
 package com.meli.inventory_service.infrastructure.rest;
 
 import com.meli.inventory_service.domain.ports.in.InventoryUseCasePort;
-import com.meli.inventory_service.infrastructure.rest.dto.ReserveRequest;
-import com.meli.inventory_service.infrastructure.rest.dto.ReserveResponse;
-import com.meli.inventory_service.infrastructure.rest.dto.StoreInventory;
+import com.meli.inventory_service.application.dto.ReserveRequest;
+import com.meli.inventory_service.application.dto.ReserveResponse;
 import com.meli.inventory_service.infrastructure.rest.dto.StoreInventoryResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +10,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Controlador REST para operaciones de inventario.
+ * Adaptador de entrada en la arquitectura hexagonal.
+ */
 @RestController
 @RequestMapping("/inventory")
 public class InventoryController {
