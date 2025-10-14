@@ -1,0 +1,18 @@
+# Configuración de SpringDoc/Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: true
+
+# Configuración de Spring Security (solo para desarrollo)
+spring:
+  security:
+    user:
+      name: admin
+      password: admin

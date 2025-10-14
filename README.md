@@ -15,7 +15,7 @@ Incluye patrones modernos como Outbox, Kafka, métricas Prometheus, y locking op
 1. [Resumen](#resumen)
 2. [Arquitectura](#arquitectura)
 3. [Stack Técnico](#stack-técnico)
-4. [Cómo Ejecutar](#cómo-ejecutar-localmente)
+4. [Cómo Ejecutar](#-cómo-ejecutar-localmente)
 5. [API y Ejemplos](#api-documentation)
 6. [Monitoreo y Métricas](#monitoreo)
 7. [Decisiones y Trade-offs](#trade-offs-y-decisiones)
@@ -113,14 +113,49 @@ Servicios disponibles:
 ./mvnw spring-boot:run
 ```
 
+### 4. Verificar acceso
+
+Una vez que la aplicación esté corriendo, prueba estas URLs en tu navegador:
+
+1. **Health Check**: http://localhost:8080/actuator/health
+2. **Swagger UI**: http://localhost:8080/swagger-ui.html
+3. **Swagger UI (alternativa)**: http://localhost:8080/swagger-ui/index.html
+4. **OpenAPI Docs**: http://localhost:8080/v3/api-docs
+
 ---
 
 ## API Documentation
 
 La documentación OpenAPI está disponible en:
 
-- Swagger UI: http://localhost:8080/swagger-ui.html
-- OpenAPI JSON: http://localhost:8080/v3/api-docs
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Swagger UI (alternativa)**: http://localhost:8080/swagger-ui/index.html
+- **OpenAPI JSON**: http://localhost:8080/v3/api-docs
+
+### 🔓 Configuración de Seguridad
+
+El proyecto incluye Spring Security configurado para:
+
+- ✅ Acceso público a Swagger UI y documentación OpenAPI
+- ✅ Acceso público a endpoints de Actuator (health, metrics)
+- ✅ Acceso público a todos los endpoints de API (modo desarrollo)
+
+**Nota de Producción**: Para ambientes productivos, modifica `SecurityConfig.java` para requerir autenticación en los endpoints de negocio:
+
+```java
+.requestMatchers("/api/**", "/inventory/**").authenticated()
+```
+
+### 🔧 Troubleshooting Swagger
+
+Si no puedes acceder a Swagger:
+
+1. **Verifica que la aplicación esté corriendo**: http://localhost:8080/actuator/health
+2. **Prueba las URLs alternativas**:
+   - http://localhost:8080/swagger-ui.html
+   - http://localhost:8080/swagger-ui/index.html
+3. **Revisa los logs** en busca de errores de Spring Security
+4. **Verifica SecurityConfig.java** que incluya los paths de Swagger en `.permitAll()`
 
 ### Ejemplos de Uso
 
@@ -406,5 +441,3 @@ https://github.com/o0410acut-spec/MELI
 git clone https://github.com/o0410acut-spec/MELI.git
 cd MELI
 ```
-
-# Comando para correr docker compose
