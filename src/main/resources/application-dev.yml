@@ -18,3 +18,4 @@ logging:
     org.springframework.security: INFO
     org.springframework.web: INFO
     org.springframework.scheduling: WARN
+    org.springframework.retry: DEBUG

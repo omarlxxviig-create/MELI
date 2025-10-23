@@ -1,7 +1,7 @@
 package com.meli.inventory_service.application.service;
 
 import com.meli.inventory_service.domain.model.StoreInventory;
-import com.meli.inventory_service.infrastructure.persistence.spring.StoreInventoryRepository;
+import com.meli.inventory_service.infrastructure.persistence.StoreInventoryRepository;
 import com.meli.inventory_service.application.dto.ReserveRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

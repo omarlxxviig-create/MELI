@@ -2,7 +2,7 @@ package com.meli.inventory_service.infrastructure.persistence;
 
 import com.meli.inventory_service.domain.ports.out.InventoryPort;
 import com.meli.inventory_service.domain.model.StoreInventory;
-import com.meli.inventory_service.infrastructure.persistence.spring.StoreInventoryRepository;
+import com.meli.inventory_service.infrastructure.persistence.StoreInventoryRepository;
 import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.List;

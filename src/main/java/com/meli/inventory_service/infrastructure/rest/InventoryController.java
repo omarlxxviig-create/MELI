@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.util.List;
@@ -59,8 +58,8 @@ public class InventoryController {
 
     @PostMapping("/commit")
     @CacheEvict(value = "inventories", allEntries = true)
-    @Retryable(value = { OptimisticLockingFailureException.class,
-            ObjectOptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
+    @Retryable(value = {
+            OptimisticLockingFailureException.class }, maxAttempts = 5, backoff = @Backoff(delay = 50, multiplier = 1.5, maxDelay = 500))
     public ResponseEntity<?> commit(@RequestParam String reservationId) {
         log.info("Attempting commit for reservation: {}", reservationId);
         try {
