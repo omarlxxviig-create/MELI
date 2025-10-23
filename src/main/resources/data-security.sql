@@ -101,3 +101,11 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 (3, 3),  -- warehouse -> ROLE_WAREHOUSE_STAFF
 (4, 4),  -- user -> ROLE_USER
 (5, 5);  -- apiclient -> ROLE_API_CLIENT
+
+-- ================================================
+-- 6. REINICIAR SECUENCIAS DE AUTO-INCREMENTO
+-- ================================================
+-- Esto asegura que los próximos inserts usen IDs correctos
+ALTER TABLE users ALTER COLUMN id RESTART WITH 6;
+ALTER TABLE roles ALTER COLUMN id RESTART WITH 6;
+ALTER TABLE permissions ALTER COLUMN id RESTART WITH 23;

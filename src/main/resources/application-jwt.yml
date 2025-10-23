@@ -1,0 +1,8 @@
+jwt:
+  # Clave segura para HS512 - debe tener al menos 64 bytes (512 bits)
+  secret: "zxRIlfOPUK2b1FyilWEamtCPwM1MTJZUwTU0QhMWu4XTqkxhEgodmVOBs07NbJTGFXVtHPi9DVFg4VhPj8hOHA"
+  expirationMs: 86400000 # 24 horas
+  refreshExpirationMs: 604800000 # 7 días
+  issuer: "meli-inventory-service"
+  tokenPrefix: "Bearer "
+  headerString: "Authorization"

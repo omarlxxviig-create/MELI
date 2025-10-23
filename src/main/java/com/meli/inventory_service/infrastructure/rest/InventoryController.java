@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * Adaptador de entrada en la arquitectura hexagonal.
  */
 @RestController
-@RequestMapping("/inventory")
+@RequestMapping("/api/inventory")
 public class InventoryController {
     private final InventoryUseCasePort useCase;
 

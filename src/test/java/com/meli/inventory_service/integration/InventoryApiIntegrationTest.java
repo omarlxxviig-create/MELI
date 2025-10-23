@@ -19,47 +19,47 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 public class InventoryApiIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @Test
-    @Sql("/test-data.sql")
-    public void fullReservationFlow() throws Exception {
-        // 1. Create reservation
-        ReserveRequest request = new ReserveRequest();
-        request.setStoreId("store-1");
-        request.setProductId("sku-1");
-        request.setQuantity(2);
-        request.setTransactionId("test-tx-1");
+        @Test
+        @Sql("/test-data.sql")
+        public void fullReservationFlow() throws Exception {
+                // 1. Create reservation
+                ReserveRequest request = new ReserveRequest();
+                request.setStoreId("store-1");
+                request.setProductId("sku-1");
+                request.setQuantity(2);
+                request.setTransactionId("test-tx-1");
 
-        MvcResult result = mockMvc.perform(post("/inventory/reserve")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING"))
-                .andReturn();
+                MvcResult result = mockMvc.perform(post("/api/inventory/reserve")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("PENDING"))
+                                .andReturn();
 
-        // Extract reservationId from response
-        ReserveResponse response = objectMapper.readValue(
-                result.getResponse().getContentAsString(),
-                ReserveResponse.class);
+                // Extract reservationId from response
+                ReserveResponse response = objectMapper.readValue(
+                                result.getResponse().getContentAsString(),
+                                ReserveResponse.class);
 
-        // 2. Verify inventory was updated
-        mockMvc.perform(get("/inventory"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].reservedQuantity").value(2));
+                // 2. Verify inventory was updated
+                mockMvc.perform(get("/api/inventory"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].reservedQuantity").value(2));
 
-        // 3. Commit reservation using extracted ID
-        mockMvc.perform(post("/inventory/commit")
-                .param("reservationId", response.getReservationId()))
-                .andExpect(status().isOk());
+                // 3. Commit reservation using extracted ID
+                mockMvc.perform(post("/api/inventory/commit")
+                                .param("reservationId", response.getReservationId()))
+                                .andExpect(status().isOk());
 
-        // 4. Verify final inventory state
-        mockMvc.perform(get("/inventory"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].totalQuantity").value(98));
-    }
+                // 4. Verify final inventory state
+                mockMvc.perform(get("/api/inventory"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].totalQuantity").value(98));
+        }
 }

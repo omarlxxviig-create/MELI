@@ -55,8 +55,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Extraer roles del token
                 List<String> roles = tokenProvider.getRolesFromToken(jwt);
+
+                // MODIFICACIÓN AQUÍ - Asegurar que cada rol tenga el prefijo ROLE_
                 List<SimpleGrantedAuthority> authorities = roles.stream()
-                        .map(SimpleGrantedAuthority::new)
+                        .map(role -> {
+                            // Verificar si el rol ya tiene el prefijo ROLE_
+                            if (!role.startsWith("ROLE_")) {
+                                return new SimpleGrantedAuthority("ROLE_" + role);
+                            }
+                            return new SimpleGrantedAuthority(role);
+                        })
                         .collect(Collectors.toList());
 
                 // Crear objeto de autenticación

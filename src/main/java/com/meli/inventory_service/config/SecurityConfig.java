@@ -17,6 +17,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsConfigurationSource;
+import java.util.Arrays;
 
 /**
  * Configuración de seguridad con JWT y RBAC.
@@ -67,6 +71,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable()) // Deshabilitamos CSRF para APIs stateless
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Sin sesiones
@@ -78,29 +83,11 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
 
-                        // Endpoints de inventario - requiere autenticación
-                        .requestMatchers(HttpMethod.GET, "/api/inventory/**")
-                        .hasAnyRole("USER", "WAREHOUSE_STAFF", "MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/inventory/**")
-                        .hasAnyRole("WAREHOUSE_STAFF", "MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/inventory/**")
-                        .hasAnyRole("WAREHOUSE_STAFF", "MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/inventory/**").hasAnyRole("MANAGER", "ADMIN")
+                        // Habilitar todo para probar y depurar
+                        .requestMatchers("/api/inventory/**")
+                        .hasAnyRole("ADMIN", "MANAGER", "WAREHOUSE_STAFF", "USER", "API_CLIENT")
 
-                        // Endpoints de productos - requiere autenticación
-                        .requestMatchers(HttpMethod.GET, "/api/products/**")
-                        .hasAnyRole("USER", "WAREHOUSE_STAFF", "MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-
-                        // Endpoints de usuarios - solo ADMIN
-                        .requestMatchers("/api/users/**").hasRole("ADMIN")
-
-                        // Endpoints de reportes - requiere roles específicos
-                        .requestMatchers("/api/reports/**").hasAnyRole("MANAGER", "ADMIN")
-
-                        // Cualquier otra petición requiere autenticación
+                        // El resto requiere autenticación
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -109,5 +96,17 @@ public class SecurityConfig {
         http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
+        configuration.setExposedHeaders(Arrays.asList("x-auth-token"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

@@ -6,7 +6,7 @@ import com.meli.inventory_service.domain.model.StoreInventory;
 import com.meli.inventory_service.domain.ports.out.InventoryPort;
 import com.meli.inventory_service.domain.ports.out.OutboxPort;
 import com.meli.inventory_service.domain.ports.out.ReservationPort;
-import com.meli.inventory_service.infrastructure.rest.dto.ReserveRequest;
+import com.meli.inventory_service.application.dto.ReserveRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;

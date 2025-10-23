@@ -57,7 +57,7 @@ public class InventoryLoadTest {
                         request.setQuantity(1);
                         request.setTransactionId("load-test-" + threadId + "-" + j);
 
-                        restTemplate.postForEntity("/inventory/reserve", request, String.class);
+                        restTemplate.postForEntity("/api/inventory/reserve", request, String.class);
                         latch.countDown();
                         return true;
                     } catch (Exception e) {
