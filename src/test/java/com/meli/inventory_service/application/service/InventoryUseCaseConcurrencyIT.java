@@ -32,7 +32,7 @@ class InventoryUseCaseConcurrencyIT {
         // Arrange
         String storeId = "store-1";
         String productId = "sku-1";
-        int initialQuantity = 100;
+        int initialQuantity = 1000;
         int numThreads = 20;
         int quantityPerReservation = 2;
 

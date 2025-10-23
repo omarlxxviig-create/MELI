@@ -34,6 +34,9 @@ public class Reservation {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
+    @Version
+    private Long version = 0L;
+
     public enum Status {
         PENDING, COMMITTED, RELEASED, EXPIRED, FAILED
     }
@@ -100,5 +103,13 @@ public class Reservation {
 
     public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

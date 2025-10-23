@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %-40.40logger{39} : %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <!-- Hibernate - DESACTIVAR COMPLETAMENTE -->
+    <logger name="org.hibernate" level="OFF" />
+    <logger name="org.hibernate.SQL" level="OFF" />
+    <logger name="org.hibernate.type" level="OFF" />
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="OFF" />
+    <logger name="org.hibernate.orm.jdbc.bind" level="OFF" />
+
+    <!-- Spring Framework -->
+    <logger name="org.springframework.web" level="INFO" />
+    <logger name="org.springframework.security" level="INFO" />
+    <logger name="org.springframework.scheduling" level="WARN" />
+
+    <!-- Aplicación -->
+    <logger name="com.meli.inventory_service" level="INFO" />
+
+    <!-- Profile specific configuration -->
+    <springProfile name="dev">
+        <logger name="com.meli.inventory_service" level="INFO" />
+    </springProfile>
+</configuration>

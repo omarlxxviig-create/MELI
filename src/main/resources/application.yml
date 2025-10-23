@@ -16,3 +16,18 @@ spring:
     user:
       name: admin
       password: admin
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: WARN
+        type:
+          descriptor:
+            sql:
+              BasicBinder: WARN
+        orm:
+          jdbc:
+            bind: WARN
+    # Opcional: nivel general de Hibernate
+    # org.hibernate: WARN

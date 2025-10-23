@@ -44,7 +44,7 @@ class InventoryUseCaseTest {
         StoreInventory inventory = new StoreInventory();
         inventory.setStoreId("store-1");
         inventory.setProductId("sku-1");
-        inventory.setTotalQuantity(10);
+        inventory.setTotalQuantity(1000);
         inventory.setReservedQuantity(0);
 
         when(inventoryPort.findByStoreAndProduct("store-1", "sku-1"))
@@ -73,7 +73,7 @@ class InventoryUseCaseTest {
         StoreInventory inventory = new StoreInventory();
         inventory.setStoreId("store-1");
         inventory.setProductId("sku-1");
-        inventory.setTotalQuantity(10);
+        inventory.setTotalQuantity(1000);
         inventory.setReservedQuantity(8);
 
         when(inventoryPort.findByStoreAndProduct("store-1", "sku-1"))
