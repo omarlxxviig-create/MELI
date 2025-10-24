@@ -359,7 +359,7 @@ return true;</stringProp>
             <hashTree/>
           </hashTree>
         </hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Ciclo de reservas" enabled="true">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Ciclo de reservas">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <stringProp name="LoopController.loops">5</stringProp>
         </LoopController>
