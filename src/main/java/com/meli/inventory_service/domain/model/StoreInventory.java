@@ -6,6 +6,10 @@ import java.time.Instant;
 @Entity
 @Table(name = "store_inventory", uniqueConstraints = {
         @UniqueConstraint(columnNames = { "store_id", "product_id" })
+}, indexes = {
+        @Index(name = "idx_store_product", columnList = "store_id, product_id"),
+        @Index(name = "idx_store_id", columnList = "store_id"),
+        @Index(name = "idx_product_id", columnList = "product_id")
 })
 public class StoreInventory {
     @Id

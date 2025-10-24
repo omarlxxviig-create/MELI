@@ -4,10 +4,12 @@ import com.meli.inventory_service.domain.ports.out.InventoryPort;
 import com.meli.inventory_service.domain.model.StoreInventory;
 import com.meli.inventory_service.infrastructure.persistence.StoreInventoryRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.List;
 
 @Component
+@Transactional
 public class JpaInventoryAdapter implements InventoryPort {
     private final StoreInventoryRepository repo;
 

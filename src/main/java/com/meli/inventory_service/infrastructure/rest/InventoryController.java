@@ -59,15 +59,15 @@ public class InventoryController {
     @PostMapping("/commit")
     @CacheEvict(value = "inventories", allEntries = true)
     @Retryable(value = {
-            OptimisticLockingFailureException.class }, maxAttempts = 5, backoff = @Backoff(delay = 50, multiplier = 1.5, maxDelay = 500))
+            OptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 20, multiplier = 2, maxDelay = 200))
     public ResponseEntity<?> commit(@RequestParam String reservationId) {
-        log.info("Attempting commit for reservation: {}", reservationId);
+        log.debug("Attempting commit for reservation: {}", reservationId);
         try {
             useCase.commit(reservationId);
-            log.info("Commit successful for: {}", reservationId);
+            log.debug("Commit successful for: {}", reservationId);
             return ResponseEntity.ok().build();
         } catch (OptimisticLockingFailureException ex) {
-            log.warn("Concurrency conflict for reservation {}: {}", reservationId, ex.getMessage());
+            log.warn("Concurrency conflict for reservation {} after retries", reservationId);
             return ResponseEntity.status(409)
                     .body(new ErrorResponse("Concurrent modification detected. Please retry."));
         } catch (IllegalArgumentException ex) {

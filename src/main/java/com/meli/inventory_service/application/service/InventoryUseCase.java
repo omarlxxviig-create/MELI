@@ -11,6 +11,8 @@ import com.meli.inventory_service.application.dto.ReserveResponse;
 import com.meli.inventory_service.domain.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -58,6 +60,7 @@ public class InventoryUseCase implements InventoryUseCasePort {
     }
 
     @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReserveResponse reserve(ReserveRequest req) {
         log.info("Starting reserve request for storeId={}, productId={}, quantity={}, transactionId={}",
                 req.getStoreId(), req.getProductId(), req.getQuantity(), req.getTransactionId());
@@ -131,7 +134,7 @@ public class InventoryUseCase implements InventoryUseCasePort {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void commit(String reservationId) {
         var r = reservationPort.findById(reservationId).orElseThrow();
         log.info("Starting commit for reservation={}, transactionId={}",
@@ -170,7 +173,7 @@ public class InventoryUseCase implements InventoryUseCasePort {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void release(String reservationId, String reason) {
         var r = reservationPort.findById(reservationId).orElseThrow();
         log.info("Starting release for reservation={}, transactionId={}, reason={}",
@@ -209,6 +212,7 @@ public class InventoryUseCase implements InventoryUseCasePort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<StoreInventory> getAllInventories() {
         return inventoryPort.findAll();
     }
