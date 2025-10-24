@@ -1,0 +1,83 @@
+groups:
+  - name: inventory_service_alerts
+    interval: 10s
+    rules:
+      # Alerta por alta latencia
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[1m])) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta latencia detectada"
+          description: "El P95 de latencia es {{ $value }}s (umbral: 0.5s)"
+
+      # Alerta por tasa de errores
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[1m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alta tasa de errores HTTP 5xx"
+          description: "{{ $value }} errores por segundo detectados"
+
+      # Alerta por reservas fallidas
+      - alert: HighReservationFailureRate
+        expr: rate(inventory_reserve_failed_total[1m]) / rate(inventory_reserve_total[1m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de reservas fallidas"
+          description: "{{ $value | humanizePercentage }} de reservas están fallando"
+
+      # Alerta por bajo throughput
+      - alert: LowThroughput
+        expr: rate(http_server_requests_seconds_count[1m]) < 1
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Bajo throughput detectado"
+          description: "Solo {{ $value }} req/s (esperado: >1 req/s)"
+
+      # Alerta por uso alto de CPU
+      - alert: HighCpuUsage
+        expr: process_cpu_usage > 0.8
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso alto de CPU"
+          description: "CPU en {{ $value | humanizePercentage }}"
+
+      # Alerta por uso alto de memoria
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes / jvm_memory_max_bytes > 0.85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uso alto de memoria JVM"
+          description: "Memoria JVM en {{ $value | humanizePercentage }}"
+
+      # Alerta por Redis no disponible
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis no disponible"
+          description: "El servicio Redis está caído"
+
+      # Alerta por Kafka no disponible
+      - alert: KafkaDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka no disponible"
+          description: "El servicio Kafka está caído"

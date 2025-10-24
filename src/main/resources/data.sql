@@ -13,5 +13,5 @@ VALUES
 -- Insertar inventario inicial
 INSERT INTO store_inventory (store_id, product_id, total_quantity, reserved_quantity, version, updated_at)
 VALUES 
-('store-001', 'prod-001', 1000, 0, 0, CURRENT_TIMESTAMP),
+('store-001', 'prod-001', 70000, 0, 0, CURRENT_TIMESTAMP),
 ('store-002', 'prod-001', 5, 0, 0, CURRENT_TIMESTAMP);
