@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Inventory Service - Smoke Test">
-      <stringProp name="TestPlan.comments">Prueba para agotar inventario y verificar manejo de stock insuficiente</stringProp>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Transport Booking Service - Smoke Test">
+      <stringProp name="TestPlan.comments">Prueba para agotar asientos disponibles y verificar manejo de capacidad</stringProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
@@ -35,8 +35,20 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">
+        <stringProp name="HTTPSampler.connect_timeout">20000</stringProp>
+        <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
+        <stringProp name="HTTPSampler.protocol">http</stringProp>
+        <boolProp name="HTTPSampler.image_parser">false</boolProp>
+        <boolProp name="HTTPSampler.concurrentDwn">false</boolProp>
+        <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+      </ConfigTestElement>
+      <hashTree/>
       
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Smoke Test - Agotar Inventario" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Smoke Test - Agotar Asientos" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -95,7 +107,7 @@ log.info(&quot;Variables inicializadas para prueba de humo&quot;);</stringProp>
         </JSR223Sampler>
         <hashTree/>
         
-        <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Reservar hasta agotar inventario" enabled="true">
+        <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Reservar hasta agotar asientos" enabled="true">
           <stringProp name="WhileController.condition">${__javaScript(${reserve_success} == &quot;true&quot;,)}</stringProp>
         </WhileController>
         <hashTree>
@@ -111,10 +123,10 @@ log.info(&quot;Iteración: &quot; + count + &quot;, Transaction ID: &quot; + var
           </JSR223PreProcessor>
           <hashTree/>
           
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Reservar" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Crear Reserva" enabled="true">
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
-            <stringProp name="HTTPSampler.path">/api/inventory/reserve</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/posts/1/reserve</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -123,12 +135,7 @@ log.info(&quot;Iteración: &quot; + count + &quot;, Transaction ID: &quot; + var
               <collectionProp name="Arguments.arguments">
                 <elementProp name="" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">{&#xd;
-    &quot;storeId&quot;: &quot;store-001&quot;,&#xd;
-    &quot;productId&quot;: &quot;prod-001&quot;,&#xd;
-    &quot;quantity&quot;: 1,&#xd;
-    &quot;transactionId&quot;: &quot;${transaction_id}&quot;&#xd;
-}</stringProp>
+                  <stringProp name="Argument.value">{ "userId": 2, "seats": 1 }</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                 </elementProp>
               </collectionProp>
@@ -150,7 +157,7 @@ log.info(&quot;Iteración: &quot; + count + &quot;, Transaction ID: &quot; + var
             <hashTree/>
             <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer ID Reserva" enabled="true">
               <stringProp name="JSONPostProcessor.referenceNames">reservation_id</stringProp>
-              <stringProp name="JSONPostProcessor.jsonPathExprs">$.reservationId</stringProp>
+              <stringProp name="JSONPostProcessor.jsonPathExprs">$.id</stringProp>
               <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
               <stringProp name="JSONPostProcessor.defaultValues">RESERVATION_ID_NOT_FOUND</stringProp>
             </JSONPostProcessor>
@@ -172,16 +179,16 @@ log.info(&quot;Iteración: &quot; + count + &quot;, Transaction ID: &quot; + var
 SampleResult prev = ctx.getPreviousResult();
 String responseCode = prev.getResponseCode();
 String errorMsg = vars.get(&quot;error_message&quot;);
-boolean success = prev.isSuccessful() &amp;&amp; responseCode.equals(&quot;200&quot;);
+boolean success = prev.isSuccessful() &amp;&amp; (responseCode.equals(&quot;200&quot;) || responseCode.equals(&quot;201&quot;));
 boolean hasReservationId = vars.get(&quot;reservation_id&quot;) != &quot;RESERVATION_ID_NOT_FOUND&quot;;
 
-// Verificar si hay stock insuficiente
-if (errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot;)) {
+// Verificar si no hay asientos disponibles
+if (errorMsg != null &amp;&amp; (errorMsg.contains(&quot;No seats available&quot;) || errorMsg.contains(&quot;asientos disponibles&quot;))) {
     vars.put(&quot;reserve_success&quot;, &quot;false&quot;);
-    log.info(&quot;INVENTARIO AGOTADO - Stock insuficiente detectado&quot;);
-} else if (responseCode.equals(&quot;409&quot;)) {
+    log.info(&quot;ASIENTOS AGOTADOS - No hay asientos disponibles&quot;);
+} else if (responseCode.equals(&quot;400&quot;) || responseCode.equals(&quot;409&quot;)) {
     vars.put(&quot;reserve_success&quot;, &quot;false&quot;);
-    log.info(&quot;INVENTARIO AGOTADO - HTTP 409: &quot; + errorMsg);
+    log.info(&quot;ASIENTOS AGOTADOS - HTTP &quot; + responseCode + &quot;: &quot; + errorMsg);
 } else if (success &amp;&amp; hasReservationId) {
     vars.put(&quot;reserve_success&quot;, &quot;true&quot;);
     log.info(&quot;Reserva exitosa: &quot; + vars.get(&quot;reservation_id&quot;));
@@ -193,30 +200,22 @@ if (errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot;
             <hashTree/>
           </hashTree>
           
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si reserva exitosa, confirmar" enabled="true">
+          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si reserva exitosa, consultar" enabled="true">
             <stringProp name="IfController.condition">${__javaScript(&quot;${reservation_id}&quot; != &quot;RESERVATION_ID_NOT_FOUND&quot;,)}</stringProp>
             <boolProp name="IfController.evaluateAll">false</boolProp>
             <boolProp name="IfController.useExpression">true</boolProp>
           </IfController>
           <hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Confirmar" enabled="true">
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Consultar Reserva" enabled="true">
               <stringProp name="HTTPSampler.domain">${host}</stringProp>
               <stringProp name="HTTPSampler.port">${port}</stringProp>
-              <stringProp name="HTTPSampler.path">/api/inventory/commit</stringProp>
+              <stringProp name="HTTPSampler.path">/api/reservations/${reservation_id}</stringProp>
               <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-              <stringProp name="HTTPSampler.method">POST</stringProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
               <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
               <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
-                <collectionProp name="Arguments.arguments">
-                  <elementProp name="reservationId" elementType="HTTPArgument">
-                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                    <stringProp name="Argument.value">${reservation_id}</stringProp>
-                    <stringProp name="Argument.metadata">=</stringProp>
-                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                    <stringProp name="Argument.name">reservationId</stringProp>
-                  </elementProp>
-                </collectionProp>
+                <collectionProp name="Arguments.arguments"/>
               </elementProp>
             </HTTPSamplerProxy>
             <hashTree>
@@ -244,8 +243,8 @@ if (errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot;
           <stringProp name="filename"></stringProp>
           <stringProp name="cacheKey">true</stringProp>
           <stringProp name="script">String msg = &quot;===== RESULTADOS SMOKE TEST =====\n&quot;;
-msg += &quot;Total de productos reservados y confirmados: &quot; + vars.get(&quot;iteration_count&quot;) + &quot;\n&quot;;
-msg += &quot;Estado final: &quot; + (vars.get(&quot;reserve_success&quot;).equals(&quot;true&quot;) ? &quot;Quedan productos&quot; : &quot;Inventario agotado&quot;) + &quot;\n&quot;;
+msg += &quot;Total de asientos reservados: &quot; + vars.get(&quot;iteration_count&quot;) + &quot;\n&quot;;
+msg += &quot;Estado final: &quot; + (vars.get(&quot;reserve_success&quot;).equals(&quot;true&quot;) ? &quot;Quedan asientos&quot; : &quot;Asientos agotados&quot;) + &quot;\n&quot;;
 msg += &quot;================================&quot;;
 
 log.info(msg);

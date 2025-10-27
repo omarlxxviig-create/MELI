@@ -12,48 +12,34 @@ Esta carpeta contiene todos los recursos para realizar pruebas del servicio de t
 - **`SmokeTest.jmx`** - Pruebas de smoke test
 - **`test-users.csv`** - Datos de usuarios de prueba
 
-### ⚠️ IMPORTANTE: Actualización Necesaria
+### ✅ Archivos JMeter Actualizados
 
-Los archivos de JMeter actualmente contienen endpoints del **sistema antiguo de inventario**. Es necesario actualizarlos para el **sistema de transporte**:
+Los archivos de JMeter han sido **actualizados exitosamente** para el **sistema de transporte**:
 
-#### Cambios Requeridos en los .jmx:
+✅ **Cambios Completados**:
 
-1. **Endpoints a actualizar**:
+- Endpoints cambiados a `/api/reservations`
+- Payloads actualizados con `servicePostId`, `userId`, `seatsRequested`, etc.
+- JSON extractors actualizados (`$.id` en lugar de `$.reservationId`)
+- Mensajes de error adaptados ("No seats available")
+- Títulos y descripciones actualizados
 
-   ```
-   ANTES (Inventario):
-   - GET  /api/products
-   - POST /api/inventory/reserve
-   - POST /api/inventory/release
+📄 **Ver detalles completos**: [JMETER-UPDATE-SUMMARY.md](JMETER-UPDATE-SUMMARY.md)
 
-   DESPUÉS (Transporte):
-   - GET  /api/posts
-   - POST /api/reservations
-   - DELETE /api/reservations/{id}
-   ```
+### ⚠️ Requisitos Previos
 
-2. **Payloads a actualizar**:
+Antes de ejecutar los tests, asegúrate de tener:
 
-   ```json
-   ANTES (Inventario):
-   {
-     "productId": 1,
-     "quantity": 5
-   }
+1. **Service Post activo** con ID 1 en la base de datos:
 
-   DESPUÉS (Transporte):
-   {
-     "servicePostId": 1,
-     "userId": 1,
-     "seatsRequested": 2,
-     "pickupLocation": "Location A",
-     "dropoffLocation": "Location B"
-   }
+   ```sql
+   INSERT INTO service_posts (id, driver_id, origin, destination, departure_time, available_seats, price_per_seat, status)
+   VALUES (1, 1, 'Ciudad A', 'Ciudad B', CURRENT_TIMESTAMP + INTERVAL '1 DAY', 50, 25.50, 'ACTIVE');
    ```
 
-3. **Variables a revisar**:
-   - Actualizar nombres de variables que hagan referencia a productos/inventario
-   - Ajustar a conceptos de transporte (posts, reservations, seats)
+2. **Usuarios registrados** según `test-users.csv`
+
+3. **Aplicación corriendo** en `localhost:8080`
 
 ### 🚀 Cómo Ejecutar JMeter
 
@@ -130,12 +116,13 @@ Authorization: Bearer {{token}}
 
 ---
 
-## 🎯 Checklist de Actualización
+## 🎯 Checklist de Ejecución
 
-- [ ] Actualizar `Jmeter.jmx` con nuevos endpoints
-- [ ] Actualizar `SmokeTest.jmx` con nuevos endpoints
-- [ ] Actualizar payloads JSON en ambos archivos
-- [ ] Revisar y ajustar `test-users.csv`
+- [x] ✅ Actualizar `Jmeter.jmx` con nuevos endpoints
+- [x] ✅ Actualizar `SmokeTest.jmx` con nuevos endpoints
+- [x] ✅ Actualizar payloads JSON en ambos archivos
+- [ ] Crear Service Post de prueba en la BD
+- [ ] Verificar usuarios en `test-users.csv` existen
 - [ ] Actualizar `MELI.postman_collection.json`
 - [ ] Probar ejecución de JMeter en modo GUI
 - [ ] Validar resultados de smoke test
@@ -160,8 +147,31 @@ Al ejecutar las pruebas de carga, enfócate en:
 - Documentación principal: `../TRANSPORT-README.md`
 - Sample requests HTTP: `../transport-sample-requests.http`
 - Arquitectura: `../architecture/HEXAGONAL_ARCHITECTURE.md`
+- **Troubleshooting**: `TROUBLESHOOTING.md` - Solución de problemas comunes
+- **Detalles de actualización**: `JMETER-UPDATE-SUMMARY.md`
+
+---
+
+## ⚠️ Problemas Comunes
+
+### Error: `java.net.SocketException: Socket closed`
+
+**Causa**: La aplicación no está corriendo
+
+**Solución rápida**:
+
+```powershell
+# Verificar si el puerto está abierto
+Test-NetConnection localhost -Port 8080 -InformationLevel Quiet
+
+# Si devuelve False, iniciar la aplicación
+java -jar target/inventory-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
+```
+
+**Ver más**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) para soluciones detalladas
 
 ---
 
 **Última Actualización**: 27 de Octubre, 2025  
-**Estado**: ⚠️ Requiere actualización para endpoints de transporte
+**Estado**: ✅ Archivos JMeter actualizados para sistema de transporte  
+**Pendiente**: Crear datos de prueba y ejecutar tests

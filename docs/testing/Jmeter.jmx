@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Inventory Service - Test Plan">
-      <stringProp name="TestPlan.comments">Plan para probar reservas y confirmaciones de inventario</stringProp>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Transport Booking Service - Test Plan">
+      <stringProp name="TestPlan.comments">Plan para probar reservas de asientos en servicios de transporte</stringProp>
       <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
@@ -100,7 +100,7 @@
         </ConstantTimer>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="1. Load Test - 10K TPM Target">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="1. Load Test - 10K TPM Target" enabled="true">
         <intProp name="ThreadGroup.num_threads">500</intProp>
         <intProp name="ThreadGroup.ramp_time">60</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -111,7 +111,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV - Distribuir usuarios">
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV - Distribuir usuarios" enabled="true">
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
           <stringProp name="filename">test-users.csv</stringProp>
@@ -188,10 +188,10 @@ String timestamp = System.currentTimeMillis();
 vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&quot; + timestamp);</stringProp>
           </JSR223PreProcessor>
           <hashTree/>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Reservar" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Crear Reserva" enabled="true">
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
-            <stringProp name="HTTPSampler.path">/api/inventory/reserve</stringProp>
+            <stringProp name="HTTPSampler.path">/api/v1/posts/1/reserve</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -200,12 +200,7 @@ vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&q
               <collectionProp name="Arguments.arguments">
                 <elementProp name="" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">{&#xd;
-    &quot;storeId&quot;: &quot;store-001&quot;,&#xd;
-    &quot;productId&quot;: &quot;prod-001&quot;,&#xd;
-    &quot;quantity&quot;: 1,&#xd;
-    &quot;transactionId&quot;: &quot;${transaction_id}&quot;&#xd;
-}</stringProp>
+                  <stringProp name="Argument.value">{ &quot;userId&quot;: 2, &quot;seats&quot;: 1 }</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                 </elementProp>
               </collectionProp>
@@ -227,7 +222,7 @@ vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&q
             <hashTree/>
             <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer ID Reserva" enabled="true">
               <stringProp name="JSONPostProcessor.referenceNames">reservation_id</stringProp>
-              <stringProp name="JSONPostProcessor.jsonPathExprs">$.reservationId</stringProp>
+              <stringProp name="JSONPostProcessor.jsonPathExprs">$.id</stringProp>
               <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
               <stringProp name="JSONPostProcessor.defaultValues">RESERVATION_ID_NOT_FOUND</stringProp>
             </JSONPostProcessor>
@@ -239,7 +234,7 @@ vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&q
               <stringProp name="JSONPostProcessor.defaultValues">NO_ERROR</stringProp>
             </JSONPostProcessor>
             <hashTree/>
-            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Detener si no hay stock" enabled="true">
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Detener si no hay asientos" enabled="true">
               <stringProp name="scriptLanguage">groovy</stringProp>
               <stringProp name="parameters"></stringProp>
               <stringProp name="filename"></stringProp>
@@ -250,37 +245,29 @@ SampleResult prev = ctx.getPreviousResult();
 String responseCode = prev.getResponseCode();
 String errorMsg = vars.get(&quot;error_message&quot;);
 
-if ((errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot;)) || responseCode.equals(&quot;409&quot;)) {
-    log.info(&quot;Thread &quot; + ctx.getThreadNum() + &quot; - Stock insuficiente detectado. Deteniendo thread.&quot;);
+if ((errorMsg != null &amp;&amp; (errorMsg.contains(&quot;No seats available&quot;) || errorMsg.contains(&quot;asientos disponibles&quot;))) || responseCode.equals(&quot;400&quot;) || responseCode.equals(&quot;409&quot;)) {
+    log.info(&quot;Thread &quot; + ctx.getThreadNum() + &quot; - No hay asientos disponibles. Deteniendo thread.&quot;);
     ctx.getThread().stop();
 }</stringProp>
             </JSR223PostProcessor>
             <hashTree/>
           </hashTree>
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si reserva exitosa, confirmar" enabled="true">
+          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si reserva exitosa, consultar estado" enabled="true">
             <stringProp name="IfController.condition">${__javaScript(&quot;${reservation_id}&quot; != &quot;RESERVATION_ID_NOT_FOUND&quot;,)}</stringProp>
             <boolProp name="IfController.evaluateAll">false</boolProp>
             <boolProp name="IfController.useExpression">true</boolProp>
           </IfController>
           <hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Confirmar" enabled="true">
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Consultar Reserva" enabled="true">
               <stringProp name="HTTPSampler.domain">${host}</stringProp>
               <stringProp name="HTTPSampler.port">${port}</stringProp>
-              <stringProp name="HTTPSampler.path">/api/inventory/commit</stringProp>
+              <stringProp name="HTTPSampler.path">/api/reservations/${reservation_id}</stringProp>
               <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-              <stringProp name="HTTPSampler.method">POST</stringProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
               <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
               <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
-                <collectionProp name="Arguments.arguments">
-                  <elementProp name="reservationId" elementType="HTTPArgument">
-                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                    <stringProp name="Argument.value">${reservation_id}</stringProp>
-                    <stringProp name="Argument.metadata">=</stringProp>
-                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                    <stringProp name="Argument.name">reservationId</stringProp>
-                  </elementProp>
-                </collectionProp>
+                <collectionProp name="Arguments.arguments"/>
               </elementProp>
             </HTTPSamplerProxy>
             <hashTree>
@@ -375,7 +362,7 @@ if ((errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot
           <stringProp name="filename"></stringProp>
         </ResultCollector>
         <hashTree/>
-        <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Gráfico en Tiempo Real">
+        <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Gráfico en Tiempo Real" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>
