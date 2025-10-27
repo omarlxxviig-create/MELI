@@ -9,6 +9,7 @@ import com.meli.inventory_service.domain.ports.out.ReservationPort;
 import com.meli.inventory_service.application.dto.ReserveRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import java.util.Optional;
@@ -16,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * DEPRECATED: Tests for old inventory system
+ * See BookingUseCaseTest for new transport booking tests
+ */
+@Disabled("Old inventory system - replaced by transport booking system")
 class InventoryUseCaseTest {
 
     @Mock

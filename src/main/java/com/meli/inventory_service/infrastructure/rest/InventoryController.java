@@ -21,8 +21,12 @@ import java.util.stream.Collectors;
 /**
  * Controlador REST para operaciones de inventario.
  * Adaptador de entrada en la arquitectura hexagonal.
+ * 
+ * DEPRECATED: This controller is from the old inventory system.
+ * Use PostController and ReservationController instead.
  */
-@RestController
+// @RestController - COMMENTED OUT: Old inventory system, replaced by transport
+// booking
 @RequestMapping("/api/inventory")
 public class InventoryController {
     private static final Logger log = LoggerFactory.getLogger(InventoryController.class);

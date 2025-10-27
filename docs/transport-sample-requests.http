@@ -1,0 +1,107 @@
+###
+### Transport Booking Service - Sample HTTP Requests
+### Use with VS Code REST Client extension or import to Postman
+###
+
+@baseUrl = http://localhost:8080/api/v1
+@contentType = application/json
+
+### =====================================================
+### SERVICE POSTS
+### =====================================================
+
+### 1. Create a new service post (draft)
+POST {{baseUrl}}/posts
+Content-Type: {{contentType}}
+
+{
+  "ownerId": 1,
+  "origin": "Zipaquirá",
+  "destination": "Bogotá",
+  "departureDateTime": "2025-11-15T08:00:00",
+  "seatsTotal": 4,
+  "price": 15000.00,
+  "description": "Viaje directo por autopista Norte. Vehículo cómodo y puntual."
+}
+
+###
+
+### 2. Publish a service post (make it available for reservations)
+# Replace {postId} with actual post ID from previous response
+POST {{baseUrl}}/posts/post-001/publish
+Content-Type: {{contentType}}
+
+###
+
+### 3. Get post by ID
+GET {{baseUrl}}/posts/post-001
+Accept: {{contentType}}
+
+###
+
+### 4. List all available posts
+GET {{baseUrl}}/posts
+Accept: {{contentType}}
+
+###
+
+### 5. Search posts by route
+GET {{baseUrl}}/posts/search?origin=Zipaquirá&destination=Bogotá
+Accept: {{contentType}}
+
+###
+
+### =====================================================
+### RESERVATIONS
+### =====================================================
+
+### 6. Create a reservation (reserve seats)
+POST {{baseUrl}}/posts/post-001/reserve
+Content-Type: {{contentType}}
+
+{
+  "userId": 10,
+  "seats": 2
+}
+
+###
+
+### 7. Confirm a reservation
+PUT {{baseUrl}}/reservations/res-003/confirm
+Content-Type: {{contentType}}
+
+###
+
+### 8. Cancel a reservation
+PUT {{baseUrl}}/reservations/res-003/cancel
+Content-Type: {{contentType}}
+
+###
+
+### 9. Get user's reservations
+GET {{baseUrl}}/users/10/reservations
+Accept: {{contentType}}
+
+###
+
+### 10. Get post's reservations
+GET {{baseUrl}}/posts/post-001/reservations
+Accept: {{contentType}}
+
+###
+
+### =====================================================
+### MONITORING & HEALTH
+### =====================================================
+
+### 11. Health check
+GET http://localhost:8080/actuator/health
+Accept: {{contentType}}
+
+###
+
+### 12. Metrics (Prometheus format)
+GET http://localhost:8080/actuator/prometheus
+Accept: text/plain
+
+###

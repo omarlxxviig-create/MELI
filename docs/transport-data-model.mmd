@@ -1,0 +1,151 @@
+```mermaid
+erDiagram
+    %% Seguridad / usuarios
+    USERS ||--o{ USER_ROLES : tiene
+    ROLES ||--o{ USER_ROLES : asignado_a
+    ROLES ||--o{ ROLE_PERMISSIONS : tiene
+    PERMISSIONS ||--o{ ROLE_PERMISSIONS : asignado_a
+
+    %% Dominio principal: posts (servicios) y reservas
+    SERVICE_POST ||--o{ RESERVATION : tiene_reservas
+    SERVICE_POST ||--o{ SERVICE_SEAT_EVENT : tiene_eventos
+    USERS ||--o{ SERVICE_POST : publica
+
+    %% Eventos / integracion
+    PROCESSED_MESSAGE }o--|| OUTBOX_MESSAGE : relacionado
+    OUTBOX_MESSAGE ||--o{ NOTIFICATION : genera
+
+    %% Notificaciones in-app (futura implementación)
+    USERS ||--o{ NOTIFICATION : recibe
+
+    %% Sesiones
+    USERS ||--o{ SESSIONS : tiene
+
+    %% =====================================================
+    %% TABLAS CORE DEL SISTEMA DE TRANSPORTE
+    %% =====================================================
+    
+    SERVICE_POST {
+        String id PK "UUID"
+        Long ownerId FK "Conductor"
+        String origin "Ciudad origen"
+        String destination "Ciudad destino"
+        LocalDateTime departureDateTime "Hora de salida"
+        Integer seatsTotal "Capacidad total"
+        Integer seatsAvailable "Plazas disponibles"
+        Decimal price "Precio por plaza"
+        String description "Descripción del viaje"
+        String status "DRAFT/PUBLISHED/CANCELLED/COMPLETED"
+        LocalDateTime createdAt "Fecha creación"
+        LocalDateTime updatedAt "Fecha actualización"
+        Integer version "Optimistic locking"
+    }
+
+    RESERVATION {
+        String id PK "UUID"
+        String postId FK "Viaje reservado"
+        Long userId FK "Pasajero"
+        Integer seats "Número de plazas"
+        String status "PENDING/CONFIRMED/CANCELLED/EXPIRED"
+        LocalDateTime expiresAt "Expiración automática"
+        LocalDateTime createdAt "Fecha creación"
+        LocalDateTime updatedAt "Fecha actualización"
+        String seatAllocationDetails "JSON con detalles"
+        Integer version "Optimistic locking"
+    }
+
+    SERVICE_SEAT_EVENT {
+        Long id PK
+        String postId FK
+        String eventType "SEAT_ADJUSTMENT/POST_UPDATED"
+        String payload "JSON"
+        LocalDateTime createdAt
+    }
+
+    %% =====================================================
+    %% TABLAS DE SOPORTE
+    %% =====================================================
+
+    USERS {
+        Long id PK
+        String username
+        String password
+        String email
+        Boolean enabled
+        LocalDateTime createdAt
+        LocalDateTime updatedAt
+    }
+
+    ROLES {
+        Long id PK
+        String name
+        String description
+    }
+
+    USER_ROLES {
+        Long userId FK
+        Long roleId FK
+    }
+
+    PERMISSIONS {
+        Long id PK
+        String name
+        String resource
+        String action
+        String description
+    }
+
+    ROLE_PERMISSIONS {
+        Long roleId FK
+        Long permissionId FK
+    }
+
+    OUTBOX_MESSAGE {
+        Long id PK
+        String aggregateType "ServicePost/Reservation"
+        String aggregateId "ID de la entidad"
+        String eventType "POST_CREATED/RESERVATION_CREATED/etc"
+        String payload "JSON"
+        String status "PENDING/SENT/FAILED"
+        LocalDateTime createdAt
+        LocalDateTime processedAt
+        Integer retryCount
+    }
+
+    PROCESSED_MESSAGE {
+        String messageId PK
+        String eventType
+        LocalDateTime processedAt
+        String status
+    }
+
+    NOTIFICATION {
+        String id PK
+        Long userId FK
+        String title
+        String body
+        String data "JSON"
+        Boolean readFlag
+        String channel "IN_APP/EMAIL/PUSH"
+        LocalDateTime createdAt
+        LocalDateTime deliveredAt
+    }
+
+    SESSIONS {
+        String sessionId PK
+        Long userId FK
+        LocalDateTime createdAt
+        LocalDateTime expiresAt
+        String metadata
+    }
+```
+
+**Notas sobre el modelo**:
+
+1. **SERVICE_POST** reemplaza PRODUCT/STORE_INVENTORY. Es la unidad reservable (viaje publicado).
+2. **RESERVATION** contiene `userId` (pasajero) y `postId` (viaje).
+3. **OUTBOX_MESSAGE** + **PROCESSED_MESSAGE** mantienen garantía de publicación de eventos (Outbox pattern) e idempotencia.
+4. **seatsTotal** vs **seatsAvailable**: gestión de stock de asientos en tiempo real.
+5. **status** en reservas: permite flujo PENDING → CONFIRMED/CANCELLED/EXPIRED.
+6. **version** en ambas tablas: optimistic locking para concurrencia.
+7. **Notificaciones**: estructura preparada para futura implementación (WebSocket/Push).
