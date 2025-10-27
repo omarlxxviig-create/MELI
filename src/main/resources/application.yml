@@ -10,13 +10,45 @@ springdoc:
     tags-sorter: alpha
     try-it-out-enabled: true
 
-# Configuración de Spring Security (solo para desarrollo)
+# Configuración de Spring
 spring:
   security:
     user:
       name: admin
       password: admin
 
+  datasource:
+    hikari:
+      maximum-pool-size: 100
+      minimum-idle: 50
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
+      pool-name: InventoryHikariPool
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+      use-key-prefix: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: inventory-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+# Logging
 logging:
   level:
     org:
@@ -29,9 +61,21 @@ logging:
         orm:
           jdbc:
             bind: WARN
-    # Opcional: nivel general de Hibernate
-    # org.hibernate: WARN
 
+# Server (Tomcat)
+server:
+  tomcat:
+    threads:
+      max: 800
+      min-spare: 200
+    accept-count: 500
+    max-connections: 20000
+    connection-timeout: 20000
+  compression:
+    enabled: true
+    min-response-size: 1024
+
+# Management (Actuator + Prometheus) - UNIFICADO
 management:
   endpoints:
     web:
@@ -42,6 +86,12 @@ management:
       export:
         enabled: true
   metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
     distribution:
       percentiles-histogram:
-        "[http.server.requests]": true
+        http.server.requests: true
+      sla:
+        http.server.requests: 10ms,50ms,100ms,200ms,500ms,1s

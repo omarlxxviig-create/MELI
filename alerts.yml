@@ -22,25 +22,15 @@ groups:
           summary: "Alta tasa de errores HTTP 5xx"
           description: "{{ $value }} errores por segundo detectados"
 
-      # Alerta por reservas fallidas
-      - alert: HighReservationFailureRate
-        expr: rate(inventory_reserve_failed_total[1m]) / rate(inventory_reserve_total[1m]) > 0.1
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Alta tasa de reservas fallidas"
-          description: "{{ $value | humanizePercentage }} de reservas están fallando"
-
       # Alerta por bajo throughput
       - alert: LowThroughput
-        expr: rate(http_server_requests_seconds_count[1m]) < 1
+        expr: rate(http_server_requests_seconds_count[1m]) < 10
         for: 5m
         labels:
           severity: info
         annotations:
           summary: "Bajo throughput detectado"
-          description: "Solo {{ $value }} req/s (esperado: >1 req/s)"
+          description: "Solo {{ $value }} req/s (esperado: >10 req/s para 5K TPM)"
 
       # Alerta por uso alto de CPU
       - alert: HighCpuUsage
@@ -72,12 +62,12 @@ groups:
           summary: "Redis no disponible"
           description: "El servicio Redis está caído"
 
-      # Alerta por Kafka no disponible
-      - alert: KafkaDown
-        expr: up{job="kafka"} == 0
-        for: 1m
+      # Alerta por alta latencia de Redis
+      - alert: RedisHighLatency
+        expr: redis_commands_duration_seconds_total > 0.1
+        for: 2m
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: "Kafka no disponible"
-          description: "El servicio Kafka está caído"
+          summary: "Redis con alta latencia"
+          description: "Redis tardando {{ $value }}s en responder"

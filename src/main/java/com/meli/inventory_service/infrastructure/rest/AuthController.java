@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -65,29 +68,11 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Obtener usuario
-            User user = userRepository.findByUsername(loginRequest.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            // Obtener token desde caché o generar nuevo
+            LoginResponse response = getCachedLoginResponse(loginRequest.getUsername(), authentication);
 
-            // Extraer roles
-            List<String> roles = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
-
-            // Generar tokens
-            String accessToken = tokenProvider.generateTokenFromUsername(user.getUsername(), roles);
-            String refreshToken = tokenProvider.generateRefreshToken(user.getUsername());
-
-            // Actualizar último login
-            user.setLastLogin(java.time.LocalDateTime.now());
-            userRepository.save(user);
-
-            LoginResponse response = new LoginResponse(
-                    accessToken,
-                    refreshToken,
-                    user.getUsername(),
-                    user.getEmail(),
-                    roles);
+            // Actualizar último login (async para no bloquear)
+            updateLastLoginAsync(loginRequest.getUsername());
 
             return ResponseEntity.ok(response);
 
@@ -99,6 +84,44 @@ public class AuthController {
         }
     }
 
+    @Cacheable(value = "tokens", key = "#username", unless = "#result == null")
+    public LoginResponse getCachedLoginResponse(String username, Authentication authentication) {
+        // Obtener usuario
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Extraer roles
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        // Generar tokens
+        String accessToken = tokenProvider.generateTokenFromUsername(user.getUsername(), roles);
+        String refreshToken = tokenProvider.generateRefreshToken(user.getUsername());
+
+        return new LoginResponse(
+                accessToken,
+                refreshToken,
+                user.getUsername(),
+                user.getEmail(),
+                roles);
+    }
+
+    private void updateLastLoginAsync(String username) {
+        // Ejecutar en thread separado para no bloquear
+        CompletableFuture.runAsync(() -> {
+            try {
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user != null) {
+                    user.setLastLogin(java.time.LocalDateTime.now());
+                    userRepository.save(user);
+                }
+            } catch (Exception e) {
+                // Log error pero no fallar el login
+            }
+        });
+    }
+
     /**
      * Endpoint para registro de nuevos usuarios.
      *
@@ -106,20 +129,23 @@ public class AuthController {
      * @return respuesta con mensaje de éxito
      */
     @PostMapping("/register")
+    @CacheEvict(value = "tokens", allEntries = true)
     @Operation(summary = "Registro de usuario", description = "Registra un nuevo usuario en el sistema")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         try {
-            // Verificar si el usuario ya existe
+            // Verificar si el usuario ya existe (ANTES de intentar crear)
             if (userRepository.existsByUsername(registerRequest.getUsername())) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Username already exists");
-                return ResponseEntity.badRequest().body(error);
+                error.put("username", registerRequest.getUsername());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
 
             if (userRepository.existsByEmail(registerRequest.getEmail())) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Email already in use");
-                return ResponseEntity.badRequest().body(error);
+                error.put("email", registerRequest.getEmail());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
 
             // Crear nuevo usuario
@@ -156,8 +182,16 @@ public class AuthController {
 
             user.setRoles(roles);
 
-            // Guardar usuario
-            userRepository.save(user);
+            // Guardar usuario con manejo de excepciones de unicidad
+            try {
+                userRepository.save(user);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // Capturar violación de constraint de unicidad
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "User already exists");
+                error.put("detail", "Username or email is already registered");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "User registered successfully");

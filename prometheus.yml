@@ -2,27 +2,24 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-# Configuración de alertas
 alerting:
   alertmanagers:
     - static_configs:
         - targets: []
 
-# Reglas de alerta
 rule_files:
   - "alerts.yml"
 
 scrape_configs:
+  # Aplicación Spring Boot
   - job_name: "inventory-service"
     metrics_path: "/actuator/prometheus"
     static_configs:
       - targets: ["host.docker.internal:8080"]
     scrape_interval: 10s
 
+  # Redis Exporter
   - job_name: "redis"
     static_configs:
-      - targets: ["redis:6379"]
-
-  - job_name: "kafka"
-    static_configs:
-      - targets: ["kafka:9092"]
+      - targets: ["redis-exporter:9121"]
+    scrape_interval: 15s

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Inventory Service - Test Plan">
-      <stringProp name="TestPlan.comments">Plan para probar reservas y confirmaciones de inventario</stringProp>
-      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Inventory Service - Smoke Test">
+      <stringProp name="TestPlan.comments">Prueba para agotar inventario y verificar manejo de stock insuficiente</stringProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
@@ -22,36 +22,35 @@
             <stringProp name="Argument.value">8080</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="username" elementType="Argument">
+            <stringProp name="Argument.name">username</stringProp>
+            <stringProp name="Argument.value">testuser1</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="password" elementType="Argument">
+            <stringProp name="Argument.name">password</stringProp>
+            <stringProp name="Argument.value">test123</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="0. Setup - Registrar 20 usuarios" enabled="true">
-        <intProp name="ThreadGroup.num_threads">20</intProp>
-        <intProp name="ThreadGroup.ramp_time">10</intProp>
+      
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Smoke Test - Agotar Inventario" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-      </SetupThreadGroup>
+      </ThreadGroup>
       <hashTree>
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV - Usuarios para registro" enabled="true">
-          <stringProp name="delimiter">,</stringProp>
-          <stringProp name="fileEncoding">UTF-8</stringProp>
-          <stringProp name="filename">test-users.csv</stringProp>
-          <boolProp name="ignoreFirstLine">true</boolProp>
-          <boolProp name="quotedData">false</boolProp>
-          <boolProp name="recycle">false</boolProp>
-          <stringProp name="shareMode">shareMode.all</stringProp>
-          <boolProp name="stopThread">false</boolProp>
-          <stringProp name="variableNames">username,password,email,firstName,lastName,role</stringProp>
-        </CSVDataSet>
-        <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Registrar usuario" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Login" enabled="true">
           <stringProp name="HTTPSampler.domain">${host}</stringProp>
           <stringProp name="HTTPSampler.port">${port}</stringProp>
-          <stringProp name="HTTPSampler.path">/api/auth/register</stringProp>
+          <stringProp name="HTTPSampler.path">/api/auth/login</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -60,14 +59,7 @@
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{&#xd;
-  &quot;username&quot;: &quot;${username}&quot;,&#xd;
-  &quot;password&quot;: &quot;${password}&quot;,&#xd;
-  &quot;email&quot;: &quot;${email}&quot;,&#xd;
-  &quot;firstName&quot;: &quot;${firstName}&quot;,&#xd;
-  &quot;lastName&quot;: &quot;${lastName}&quot;,&#xd;
-  &quot;roles&quot;: [&quot;${role}&quot;]&#xd;
-}</stringProp>
+                <stringProp name="Argument.value">{&quot;username&quot;:&quot;${username}&quot;,&quot;password&quot;:&quot;${password}&quot;}</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
@@ -83,111 +75,42 @@
             </collectionProp>
           </HeaderManager>
           <hashTree/>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Verificar registro exitoso o usuario existente" enabled="true">
-            <collectionProp name="Asserion.test_strings">
-              <stringProp name="49587">201</stringProp>
-              <stringProp name="51508">400</stringProp>
-            </collectionProp>
-            <stringProp name="Assertion.custom_message">El usuario debe ser creado (201) o ya existir (400)</stringProp>
-            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
-            <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">40</intProp>
-          </ResponseAssertion>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer Token" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">jwt_token</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$.accessToken</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
+            <stringProp name="JSONPostProcessor.defaultValues">TOKEN_NOT_FOUND</stringProp>
+          </JSONPostProcessor>
           <hashTree/>
         </hashTree>
-        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Esperar entre registros" enabled="true">
-          <stringProp name="ConstantTimer.delay">200</stringProp>
-        </ConstantTimer>
+        
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Inicializar variables" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="script">vars.put(&quot;reserve_success&quot;, &quot;true&quot;);
+vars.put(&quot;iteration_count&quot;, &quot;0&quot;);
+log.info(&quot;Variables inicializadas para prueba de humo&quot;);</stringProp>
+        </JSR223Sampler>
         <hashTree/>
-      </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="1. Load Test - 10K TPM Target">
-        <intProp name="ThreadGroup.num_threads">500</intProp>
-        <intProp name="ThreadGroup.ramp_time">60</intProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">1</stringProp>
-          <boolProp name="LoopController.continue_forever">false</boolProp>
-        </elementProp>
-      </ThreadGroup>
-      <hashTree>
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV - Distribuir usuarios">
-          <stringProp name="delimiter">,</stringProp>
-          <stringProp name="fileEncoding">UTF-8</stringProp>
-          <stringProp name="filename">test-users.csv</stringProp>
-          <boolProp name="ignoreFirstLine">true</boolProp>
-          <boolProp name="quotedData">false</boolProp>
-          <boolProp name="recycle">true</boolProp>
-          <stringProp name="shareMode">shareMode.all</stringProp>
-          <boolProp name="stopThread">false</boolProp>
-          <stringProp name="variableNames">current_username,current_password,email,firstName,lastName,role</stringProp>
-        </CSVDataSet>
-        <hashTree/>
-        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="1. Login (una vez por thread)" enabled="true">
-          <stringProp name="TestPlan.comments">Cada thread hace login con uno de los 20 usuarios registrados</stringProp>
-        </OnceOnlyController>
+        
+        <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Reservar hasta agotar inventario" enabled="true">
+          <stringProp name="WhileController.condition">${__javaScript(${reserve_success} == &quot;true&quot;,)}</stringProp>
+        </WhileController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Login" enabled="true">
-            <stringProp name="HTTPSampler.domain">${host}</stringProp>
-            <stringProp name="HTTPSampler.port">${port}</stringProp>
-            <stringProp name="HTTPSampler.path">/api/auth/login</stringProp>
-            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-            <stringProp name="HTTPSampler.method">POST</stringProp>
-            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
-              <collectionProp name="Arguments.arguments">
-                <elementProp name="" elementType="HTTPArgument">
-                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">{&quot;username&quot;:&quot;${current_username}&quot;,&quot;password&quot;:&quot;${current_password}&quot;}</stringProp>
-                  <stringProp name="Argument.metadata">=</stringProp>
-                </elementProp>
-              </collectionProp>
-            </elementProp>
-          </HTTPSamplerProxy>
-          <hashTree>
-            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
-              <collectionProp name="HeaderManager.headers">
-                <elementProp name="" elementType="Header">
-                  <stringProp name="Header.name">Content-Type</stringProp>
-                  <stringProp name="Header.value">application/json</stringProp>
-                </elementProp>
-              </collectionProp>
-            </HeaderManager>
-            <hashTree/>
-            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer Token" enabled="true">
-              <stringProp name="JSONPostProcessor.referenceNames">jwt_token</stringProp>
-              <stringProp name="JSONPostProcessor.jsonPathExprs">$.accessToken</stringProp>
-              <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
-              <stringProp name="JSONPostProcessor.defaultValues">TOKEN_NOT_FOUND</stringProp>
-            </JSONPostProcessor>
-            <hashTree/>
-          </hashTree>
-        </hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="2. Ciclo de reservas (20 veces)" enabled="true">
-          <boolProp name="LoopController.continue_forever">true</boolProp>
-          <stringProp name="LoopController.loops">20</stringProp>
-        </LoopController>
-        <hashTree>
-          <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Target: 166 req/sec (10000 TPM)" enabled="true">
-            <intProp name="calcMode">2</intProp>
-            <doubleProp>
-              <name>throughput</name>
-              <value>10000.0</value>
-              <savedValue>0.0</savedValue>
-            </doubleProp>
-          </ConstantThroughputTimer>
-          <hashTree/>
-          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generar ID Transacción" enabled="true">
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Contador" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="parameters"></stringProp>
             <stringProp name="filename"></stringProp>
             <stringProp name="cacheKey">true</stringProp>
-            <stringProp name="script">String threadId = ctx.getThreadNum();
-String timestamp = System.currentTimeMillis();
-vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&quot; + timestamp);</stringProp>
+            <stringProp name="script">int count = Integer.parseInt(vars.get(&quot;iteration_count&quot;)) + 1;
+vars.put(&quot;iteration_count&quot;, String.valueOf(count));
+vars.put(&quot;transaction_id&quot;, &quot;tx-smoke-&quot; + count + &quot;-&quot; + System.currentTimeMillis());
+log.info(&quot;Iteración: &quot; + count + &quot;, Transaction ID: &quot; + vars.get(&quot;transaction_id&quot;));</stringProp>
           </JSR223PreProcessor>
           <hashTree/>
+          
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Reservar" enabled="true">
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
@@ -239,7 +162,7 @@ vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&q
               <stringProp name="JSONPostProcessor.defaultValues">NO_ERROR</stringProp>
             </JSONPostProcessor>
             <hashTree/>
-            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Detener si no hay stock" enabled="true">
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Verificar éxito reserva" enabled="true">
               <stringProp name="scriptLanguage">groovy</stringProp>
               <stringProp name="parameters"></stringProp>
               <stringProp name="filename"></stringProp>
@@ -249,14 +172,27 @@ vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&q
 SampleResult prev = ctx.getPreviousResult();
 String responseCode = prev.getResponseCode();
 String errorMsg = vars.get(&quot;error_message&quot;);
+boolean success = prev.isSuccessful() &amp;&amp; responseCode.equals(&quot;200&quot;);
+boolean hasReservationId = vars.get(&quot;reservation_id&quot;) != &quot;RESERVATION_ID_NOT_FOUND&quot;;
 
-if ((errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot;)) || responseCode.equals(&quot;409&quot;)) {
-    log.info(&quot;Thread &quot; + ctx.getThreadNum() + &quot; - Stock insuficiente detectado. Deteniendo thread.&quot;);
-    ctx.getThread().stop();
+// Verificar si hay stock insuficiente
+if (errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot;)) {
+    vars.put(&quot;reserve_success&quot;, &quot;false&quot;);
+    log.info(&quot;INVENTARIO AGOTADO - Stock insuficiente detectado&quot;);
+} else if (responseCode.equals(&quot;409&quot;)) {
+    vars.put(&quot;reserve_success&quot;, &quot;false&quot;);
+    log.info(&quot;INVENTARIO AGOTADO - HTTP 409: &quot; + errorMsg);
+} else if (success &amp;&amp; hasReservationId) {
+    vars.put(&quot;reserve_success&quot;, &quot;true&quot;);
+    log.info(&quot;Reserva exitosa: &quot; + vars.get(&quot;reservation_id&quot;));
+} else {
+    vars.put(&quot;reserve_success&quot;, &quot;false&quot;);
+    log.info(&quot;Reserva fallida: &quot; + responseCode + &quot; - &quot; + prev.getResponseMessage());
 }</stringProp>
             </JSR223PostProcessor>
             <hashTree/>
           </hashTree>
+          
           <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si reserva exitosa, confirmar" enabled="true">
             <stringProp name="IfController.condition">${__javaScript(&quot;${reservation_id}&quot; != &quot;RESERVATION_ID_NOT_FOUND&quot;,)}</stringProp>
             <boolProp name="IfController.evaluateAll">false</boolProp>
@@ -295,14 +231,32 @@ if ((errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot
               <hashTree/>
             </hashTree>
           </hashTree>
-          <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Tiempo de pensamiento" enabled="true">
-            <stringProp name="ConstantTimer.delay">50</stringProp>
-            <stringProp name="RandomTimer.range">100</stringProp>
-          </UniformRandomTimer>
+          
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Esperar 500ms entre iteraciones" enabled="true">
+            <stringProp name="ConstantTimer.delay">500</stringProp>
+          </ConstantTimer>
           <hashTree/>
         </hashTree>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Ver Resultados (View Results Tree)">
-          <boolProp name="ResultCollector.error_logging">true</boolProp>
+        
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Resultados finales" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="script">String msg = &quot;===== RESULTADOS SMOKE TEST =====\n&quot;;
+msg += &quot;Total de productos reservados y confirmados: &quot; + vars.get(&quot;iteration_count&quot;) + &quot;\n&quot;;
+msg += &quot;Estado final: &quot; + (vars.get(&quot;reserve_success&quot;).equals(&quot;true&quot;) ? &quot;Quedan productos&quot; : &quot;Inventario agotado&quot;) + &quot;\n&quot;;
+msg += &quot;================================&quot;;
+
+log.info(msg);
+SampleResult.setResponseData(msg, &quot;UTF-8&quot;);
+SampleResult.setDataType(org.apache.jmeter.samplers.SampleResult.TEXT);
+return true;</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Ver Resultados (View Results Tree)" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>
             <value class="SampleSaveConfiguration">
@@ -338,44 +292,8 @@ if ((errorMsg != null &amp;&amp; errorMsg.contains(&quot;Insufficient stock&quot
           <stringProp name="filename"></stringProp>
         </ResultCollector>
         <hashTree/>
-        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Resumen">
-          <boolProp name="ResultCollector.error_logging">false</boolProp>
-          <objProp>
-            <name>saveConfig</name>
-            <value class="SampleSaveConfiguration">
-              <time>true</time>
-              <latency>true</latency>
-              <timestamp>true</timestamp>
-              <success>true</success>
-              <label>true</label>
-              <code>true</code>
-              <message>true</message>
-              <threadName>true</threadName>
-              <dataType>true</dataType>
-              <encoding>false</encoding>
-              <assertions>true</assertions>
-              <subresults>true</subresults>
-              <responseData>false</responseData>
-              <samplerData>false</samplerData>
-              <xml>false</xml>
-              <fieldNames>true</fieldNames>
-              <responseHeaders>false</responseHeaders>
-              <requestHeaders>false</requestHeaders>
-              <responseDataOnError>false</responseDataOnError>
-              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
-              <assertionsResultsToSave>0</assertionsResultsToSave>
-              <bytes>true</bytes>
-              <sentBytes>true</sentBytes>
-              <url>true</url>
-              <threadCounts>true</threadCounts>
-              <idleTime>true</idleTime>
-              <connectTime>true</connectTime>
-            </value>
-          </objProp>
-          <stringProp name="filename"></stringProp>
-        </ResultCollector>
-        <hashTree/>
-        <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Gráfico en Tiempo Real">
+        
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Resumen" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

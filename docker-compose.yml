@@ -9,9 +9,9 @@ services:
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
@@ -20,7 +20,7 @@ services:
       - KAFKA_NUM_PARTITIONS=3
       - KAFKA_COMPRESSION_TYPE=lz4
       - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
-      - KAFKA_HEAP_OPTS=-Xmx512M -Xms256M
+      - KAFKA_HEAP_OPTS=-Xmx1024M -Xms512M
       - KAFKA_JVM_PERFORMANCE_OPTS=-XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35
       - KAFKA_SOCKET_REQUEST_MAX_BYTES=104857600
       - KAFKA_SOCKET_RECEIVE_BUFFER_BYTES=102400
@@ -34,23 +34,23 @@ services:
     networks:
       - kafka-network
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9092"]
       interval: 30s
       timeout: 10s
       retries: 3
     deploy:
       resources:
         limits:
-          memory: 1536M
+          memory: 2048M
         reservations:
-          memory: 768M
+          memory: 1024M
 
   redis:
     image: redis:7.0
     container_name: redis
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 1024mb --maxmemory-policy allkeys-lru --appendonly yes --tcp-backlog 511 --timeout 0 --tcp-keepalive 300 --save "" --appendfsync no
+    command: redis-server --maxmemory 1536mb --maxmemory-policy allkeys-lru --appendonly yes --tcp-backlog 511 --timeout 0 --tcp-keepalive 300 --save "" --appendfsync no
     volumes:
       - redis_data:/data
     networks:
@@ -58,9 +58,21 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1280M
+          memory: 1536M
         reservations:
-          memory: 768M
+          memory: 1024M
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis:6379
+    networks:
+      - kafka-network
+    depends_on:
+      - redis
 
   redis-insight:
     image: redis/redisinsight:latest

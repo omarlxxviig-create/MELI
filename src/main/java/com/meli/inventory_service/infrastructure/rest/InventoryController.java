@@ -36,21 +36,29 @@ public class InventoryController {
     @CacheEvict(value = "inventories", allEntries = true)
     public ResponseEntity<?> reserve(@RequestBody ReserveRequest req) {
         try {
+            log.debug("Reserve request: storeId={}, productId={}, quantity={}, transactionId={}",
+                    req.getStoreId(), req.getProductId(), req.getQuantity(), req.getTransactionId());
+
             // Validaciones básicas
             if (req.getStoreId() == null || req.getProductId() == null || req.getQuantity() <= 0) {
+                log.warn("Invalid request parameters: {}", req);
                 return ResponseEntity.badRequest()
                         .body(new ErrorResponse("Invalid request parameters"));
             }
 
             ReserveResponse res = useCase.reserve(req);
+            log.info("Reserve successful: reservationId={}", res.getReservationId());
             return ResponseEntity.ok(res);
         } catch (IllegalArgumentException ex) {
+            log.error("Inventory not found: {}", ex.getMessage());
             return ResponseEntity.status(404)
                     .body(new ErrorResponse("Inventory not found: " + ex.getMessage()));
         } catch (IllegalStateException ex) {
+            log.warn("Insufficient stock: {}", ex.getMessage());
             return ResponseEntity.status(409)
                     .body(new ErrorResponse("Insufficient stock: " + ex.getMessage()));
         } catch (Exception ex) {
+            log.error("Internal error reserving: {}", ex.getMessage(), ex);
             return ResponseEntity.status(500)
                     .body(new ErrorResponse("Internal error: " + ex.getMessage()));
         }
