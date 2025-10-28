@@ -21,7 +21,7 @@ public class CreatePostRequest {
     private String destination;
 
     @NotNull(message = "Departure date/time is required")
-    @Future(message = "Departure must be in the future")
+    @Future(message = "Departure date must be in the future") // Simplificar validación
     private LocalDateTime departureDateTime;
 
     @NotNull(message = "Seats total is required")

@@ -111,11 +111,37 @@ public class ServicePost {
      * Publica el post (lo hace visible para reservas)
      */
     public void publish() {
-        if (this.status == PostStatus.DRAFT) {
-            this.status = PostStatus.PUBLISHED;
-            this.updatedAt = LocalDateTime.now();
-        } else {
-            throw new IllegalStateException("Only draft posts can be published");
+        // Si ya está publicado, no hacer nada (idempotencia)
+        if (this.status == PostStatus.PUBLISHED) {
+            return;
+        }
+
+        // Solo posts en DRAFT pueden ser publicados
+        if (this.status != PostStatus.DRAFT) {
+            throw new IllegalStateException(
+                    String.format("Cannot publish post in status: %s. Only DRAFT posts can be published.",
+                            this.status));
+        }
+
+        // Validar antes de publicar
+        validateForPublication();
+
+        this.status = PostStatus.PUBLISHED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    private void validateForPublication() {
+        if (this.departureDateTime.isBefore(LocalDateTime.now().plusHours(24))) {
+            throw new IllegalStateException("Departure must be at least 24 hours in the future");
+        }
+        if (this.price == null || this.price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Price must be set and greater than zero");
+        }
+        if (this.seatsTotal == null || this.seatsTotal <= 0) {
+            throw new IllegalStateException("Seats total must be greater than zero");
+        }
+        if (!this.seatsTotal.equals(this.seatsAvailable)) {
+            throw new IllegalStateException("Cannot publish with reservations");
         }
     }
 
@@ -144,26 +170,44 @@ public class ServicePost {
     }
 
     /**
-     * Reserva asientos (decrementa disponibles)
+     * Verifica si hay suficientes asientos disponibles (sin reservarlos)
      */
-    public void reserveSeats(int seats) {
+    public boolean hasAvailableSeats(int requestedSeats) {
+        return this.status == PostStatus.PUBLISHED &&
+                this.seatsAvailable >= requestedSeats &&
+                requestedSeats > 0;
+    }
+
+    /**
+     * Bloquea temporalmente asientos para una reserva pendiente
+     * pero no los descuenta del total disponible
+     */
+    public void validateSeatsAvailability(int seats) {
         if (this.status != PostStatus.PUBLISHED) {
             throw new IllegalStateException("Cannot reserve seats on non-published post");
         }
         if (seats <= 0) {
             throw new IllegalArgumentException("Seats to reserve must be positive");
         }
-        if (this.seatsAvailable < seats) {
+        if (!hasAvailableSeats(seats)) {
             throw new IllegalStateException(
-                    String.format("Insufficient seats available. Requested: %d, Available: %d",
-                            seats, this.seatsAvailable));
+                    String.format(
+                            "Insufficient seats available or post not published. Requested: %d, Available: %d, Status: %s",
+                            seats, this.seatsAvailable, this.status));
         }
+    }
+
+    /**
+     * Confirma la reserva y descuenta los asientos
+     */
+    public void confirmSeats(int seats) {
+        validateSeatsAvailability(seats);
         this.seatsAvailable -= seats;
         this.updatedAt = LocalDateTime.now();
     }
 
     /**
-     * Libera asientos (incrementa disponibles)
+     * Libera asientos (solo para reservas confirmadas que se cancelan)
      */
     public void releaseSeats(int seats) {
         if (seats <= 0) {
@@ -175,13 +219,6 @@ public class ServicePost {
         }
         this.seatsAvailable = newAvailable;
         this.updatedAt = LocalDateTime.now();
-    }
-
-    /**
-     * Verifica si hay suficientes asientos disponibles
-     */
-    public boolean hasAvailableSeats(int requestedSeats) {
-        return this.seatsAvailable >= requestedSeats && this.status == PostStatus.PUBLISHED;
     }
 
     // Getters and Setters

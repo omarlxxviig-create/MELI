@@ -36,7 +36,8 @@ public class ReservationController {
             @PathVariable String postId,
             @Valid @RequestBody CreateReservationRequest request) {
 
-        logger.info("POST /api/v1/posts/{}/reserve - Creating reservation", postId);
+        logger.info("POST /api/v1/posts/{}/reserve - Creating reservation with seats: {}",
+                postId, request.getSeats());
 
         CreateReservationCommand command = new CreateReservationCommand(
                 postId,
@@ -45,11 +46,15 @@ public class ReservationController {
 
         try {
             Reservation reservation = bookingUseCase.createReservation(command);
+            logger.info("Reservation created successfully: {}", reservation.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(reservation));
         } catch (IllegalStateException e) {
-            logger.warn("Reservation failed: {}", e.getMessage());
+            logger.warn("Reservation failed for post {}: {}", postId, e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(null); // Se podría retornar un error DTO estructurado
+                    .body(null);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid reservation request for post {}: {}", postId, e.getMessage());
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
@@ -68,14 +73,26 @@ public class ReservationController {
 
     @PutMapping("/reservations/{id}/confirm")
     @Operation(summary = "Confirmar una reserva")
-    public ResponseEntity<ReservationResponse> confirmReservation(@PathVariable String id) {
+    public ResponseEntity<?> confirmReservation(@PathVariable String id) {
         logger.info("PUT /api/v1/reservations/{}/confirm - Confirming reservation", id);
 
         try {
             Reservation reservation = bookingUseCase.confirmReservation(id);
             return ResponseEntity.ok(toResponse(reservation));
+        } catch (IllegalStateException e) {
+            // Estado inválido (no PENDING)
+            logger.warn("Cannot confirm reservation {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("Cannot confirm: " + e.getMessage()));
         } catch (IllegalArgumentException e) {
+            // Reserva no encontrada
+            logger.warn("Reservation not found: {}", id);
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            // Otros errores
+            logger.error("Error confirming reservation: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Internal error: " + e.getMessage()));
         }
     }
 
@@ -126,5 +143,22 @@ public class ReservationController {
         response.setCreatedAt(reservation.getCreatedAt());
         response.setUpdatedAt(reservation.getUpdatedAt());
         return response;
+    }
+
+    // Agregar clase para respuestas de error
+    private static class ErrorResponse {
+        private String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }
