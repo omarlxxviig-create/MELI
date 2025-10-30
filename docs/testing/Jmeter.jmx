@@ -49,7 +49,7 @@
           <stringProp name="variableNames">username,password,email,firstName,lastName,role</stringProp>
         </CSVDataSet>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Registrar usuario" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Registrar usuario">
           <stringProp name="HTTPSampler.domain">${host}</stringProp>
           <stringProp name="HTTPSampler.port">${port}</stringProp>
           <stringProp name="HTTPSampler.path">/api/auth/register</stringProp>
@@ -96,9 +96,46 @@
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Esperar entre registros" enabled="true">
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Esperar entre registros">
           <stringProp name="ConstantTimer.delay">200</stringProp>
         </ConstantTimer>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Ver Resultados de Registro de Usuarios">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
         <hashTree/>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="1. Load Test - 10K TPM Target">
@@ -165,12 +202,12 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="2. Ciclo de reservas (20 veces)" enabled="false">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="2. Ciclo de Publicación y Reserva">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <stringProp name="LoopController.loops">20</stringProp>
         </LoopController>
         <hashTree>
-          <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Target: 166 req/sec (10000 TPM)" enabled="true">
+          <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Target: 166 req/sec (10000 TPM)">
             <intProp name="calcMode">2</intProp>
             <doubleProp>
               <name>throughput</name>
@@ -179,7 +216,7 @@
             </doubleProp>
           </ConstantThroughputTimer>
           <hashTree/>
-          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generar ID Transacción" enabled="true">
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generar ID Transacción">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="parameters"></stringProp>
             <stringProp name="filename"></stringProp>
@@ -190,44 +227,40 @@ vars.put(&quot;transaction_id&quot;, &quot;tx-load-&quot; + threadId + &quot;-&q
           </JSR223PreProcessor>
           <hashTree/>
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generar datos aleatorios para Service Post">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
             <stringProp name="script">
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ThreadLocalRandom
 
 def random = ThreadLocalRandom.current()
-def cities = ['Ciudad A', 'Ciudad B', 'Ciudad C', 'Ciudad D', 'Ciudad E']
+def ownerId = random.nextInt(1, 21) // 1-20
+def cities = [&apos;Ciudad A&apos;, &apos;Ciudad B&apos;, &apos;Ciudad C&apos;, &apos;Ciudad D&apos;, &apos;Ciudad E&apos;]
 def origin = cities[random.nextInt(cities.size())]
 def destination
 do {
     destination = cities[random.nextInt(cities.size())]
 } while (destination == origin)
-
-// Generar fecha futura con formato correcto
-def now = LocalDateTime.now()
-def departure = now.plusDays(2)  // Mínimo 2 días en el futuro
-                .plusHours(random.nextInt(24))
-                .plusMinutes(random.nextInt(60))
-def departureStr = departure.format(DateTimeFormatter.ISO_DATE_TIME)  // Usar ISO_DATE_TIME
-
-def ownerId = random.nextInt(1, 21)
+def departure = LocalDateTime.now().plusDays(random.nextInt(1, 5)).plusHours(random.nextInt(0, 24))
+def departureStr = departure.format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&apos;T&apos;HH:mm:ss&quot;))
 def seatsTotal = random.nextInt(1, 11)
 def price = (random.nextInt(10, 51) + random.nextDouble()).round(2)
-def description = "Test post ${System.currentTimeMillis()}"
+def description = &quot;Test post ${System.currentTimeMillis()}&quot;
 
-vars.put("ownerId", ownerId.toString())
-vars.put("origin", origin)
-vars.put("destination", destination)
-vars.put("departureDateTime", departureStr)  // Usar la fecha formateada
-vars.put("seatsTotal", seatsTotal.toString())
-vars.put("price", price.toString())
-vars.put("description", description)
-
-log.info("Generando post: " + departureStr)  // Log para debug
-</stringProp>
+vars.put(&quot;ownerId&quot;, ownerId.toString())
+vars.put(&quot;origin&quot;, origin)
+vars.put(&quot;destination&quot;, destination)
+vars.put(&quot;departureDateTime&quot;, departureStr)
+vars.put(&quot;seatsTotal&quot;, seatsTotal.toString())
+vars.put(&quot;price&quot;, price.toString())
+vars.put(&quot;description&quot;, description)
+            </stringProp>
           </JSR223PreProcessor>
           <hashTree/>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Publicar Servicio" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Crear Servicio">
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.path">/api/v1/posts</stringProp>
@@ -254,7 +287,7 @@ log.info("Generando post: " + departureStr)  // Log para debug
             </elementProp>
           </HTTPSamplerProxy>
           <hashTree>
-            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
               <collectionProp name="HeaderManager.headers">
                 <elementProp name="" elementType="Header">
                   <stringProp name="Header.name">Content-Type</stringProp>
@@ -267,21 +300,21 @@ log.info("Generando post: " + departureStr)  // Log para debug
               </collectionProp>
             </HeaderManager>
             <hashTree/>
-            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer ID Reserva" enabled="true">
-              <stringProp name="JSONPostProcessor.referenceNames">reservation_id</stringProp>
+            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer ID Reserva">
+              <stringProp name="JSONPostProcessor.referenceNames">publicacion_id</stringProp>
               <stringProp name="JSONPostProcessor.jsonPathExprs">$.id</stringProp>
               <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
               <stringProp name="JSONPostProcessor.defaultValues">RESERVATION_ID_NOT_FOUND</stringProp>
             </JSONPostProcessor>
             <hashTree/>
-            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer mensaje de error" enabled="true">
+            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer mensaje de error">
               <stringProp name="JSONPostProcessor.referenceNames">error_message</stringProp>
               <stringProp name="JSONPostProcessor.jsonPathExprs">$.message</stringProp>
               <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
               <stringProp name="JSONPostProcessor.defaultValues">NO_ERROR</stringProp>
             </JSONPostProcessor>
             <hashTree/>
-            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Detener si no hay asientos" enabled="true">
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Detener si no hay asientos">
               <stringProp name="scriptLanguage">groovy</stringProp>
               <stringProp name="parameters"></stringProp>
               <stringProp name="filename"></stringProp>
@@ -299,18 +332,18 @@ if ((errorMsg != null &amp;&amp; (errorMsg.contains(&quot;No seats available&quo
             </JSR223PostProcessor>
             <hashTree/>
           </hashTree>
-          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si reserva exitosa, consultar estado" enabled="true">
-            <stringProp name="IfController.condition">${__javaScript(&quot;${reservation_id}&quot; != &quot;RESERVATION_ID_NOT_FOUND&quot;,)}</stringProp>
+          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Si publicación exitosa, hacer reserva">
+            <stringProp name="IfController.condition">${__javaScript(&quot;${publicacion_id}&quot; != &quot;RESERVATION_ID_NOT_FOUND&quot;,)}</stringProp>
             <boolProp name="IfController.evaluateAll">false</boolProp>
             <boolProp name="IfController.useExpression">true</boolProp>
           </IfController>
           <hashTree>
-            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Consultar Reserva" enabled="true">
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Publicar Servicio">
               <stringProp name="HTTPSampler.domain">${host}</stringProp>
               <stringProp name="HTTPSampler.port">${port}</stringProp>
-              <stringProp name="HTTPSampler.path">/api/reservations/${reservation_id}</stringProp>
+              <stringProp name="HTTPSampler.path">/api/v1/posts/${publicacion_id}/publish</stringProp>
               <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <stringProp name="HTTPSampler.method">PUT</stringProp>
               <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
               <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
               <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
@@ -318,7 +351,7 @@ if ((errorMsg != null &amp;&amp; (errorMsg.contains(&quot;No seats available&quo
               </elementProp>
             </HTTPSamplerProxy>
             <hashTree>
-              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
                 <collectionProp name="HeaderManager.headers">
                   <elementProp name="" elementType="Header">
                     <stringProp name="Header.name">Authorization</stringProp>
@@ -329,14 +362,14 @@ if ((errorMsg != null &amp;&amp; (errorMsg.contains(&quot;No seats available&quo
               <hashTree/>
             </hashTree>
           </hashTree>
-          <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Tiempo de pensamiento" enabled="true">
+          <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Tiempo de pensamiento">
             <stringProp name="ConstantTimer.delay">50</stringProp>
             <stringProp name="RandomTimer.range">100</stringProp>
           </UniformRandomTimer>
           <hashTree/>
         </hashTree>
         <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Ver Resultados (View Results Tree)">
-          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <boolProp name="ResultCollector.error_logging">true</boolProp>
           <objProp>
             <name>saveConfig</name>
             <value class="SampleSaveConfiguration">
@@ -409,7 +442,7 @@ if ((errorMsg != null &amp;&amp; (errorMsg.contains(&quot;No seats available&quo
           <stringProp name="filename"></stringProp>
         </ResultCollector>
         <hashTree/>
-        <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Gráfico en Tiempo Real" enabled="true">
+        <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Gráfico en Tiempo Real">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

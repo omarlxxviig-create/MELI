@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -51,10 +52,11 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(post));
     }
 
-    @PostMapping("/{id}/publish")
-    @Operation(summary = "Publicar un servicio (hacerlo visible para reservas)")
-    public ResponseEntity<ServicePostResponse> publishPost(@PathVariable String id) {
-        logger.info("POST /api/v1/posts/{}/publish - Publishing post", id);
+    @PutMapping("/{id}/publish")
+    @PreAuthorize("hasRole('ADMIN') or @postAuthorizationHandler.isOwner(#id)")
+    @Operation(summary = "Publicar un post")
+    public ResponseEntity<?> publishPost(@PathVariable String id) {
+        logger.info("PUT /api/v1/posts/{}/publish - Publishing post", id);
 
         ServicePost post = bookingUseCase.publishPost(id);
 
@@ -120,5 +122,21 @@ public class PostController {
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
         return response;
+    }
+
+    private static class ErrorResponse {
+        private String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }
