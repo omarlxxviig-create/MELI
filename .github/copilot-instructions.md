@@ -51,12 +51,12 @@ Copiar código
 
 ## 🔐 Autenticación con Firebase (Google Sign-In)
 
-1. El frontend (Flutter) realiza el login con **Firebase Authentication (Google)**.  
-2. Firebase devuelve un **JWT (ID token)** firmado.  
-3. El frontend envía este token en cada request (`Authorization: Bearer <token>`).  
-4. El backend valida el token usando el **Firebase Admin SDK**.  
-   - Verifica la firma y la expiración.  
-   - Extrae el `uid`, `email` y `displayName` del usuario autenticado.  
+1. El frontend (Flutter) realiza el login con **Firebase Authentication (Google)**.
+2. Firebase devuelve un **JWT (ID token)** firmado.
+3. El frontend envía este token en cada request (`Authorization: Bearer <token>`).
+4. El backend valida el token usando el **Firebase Admin SDK**.
+   - Verifica la firma y la expiración.
+   - Extrae el `uid`, `email` y `displayName` del usuario autenticado.
 
 👉 Copilot debe generar controladores y filtros de seguridad que **solo permitan acceso autenticado** usando este flujo.
 
@@ -67,7 +67,7 @@ Copiar código
 - **User** → representa al usuario autenticado (nombre, email, rol, historial de reservas).
 - **Trip** → viaje publicado por un conductor (origen, destino, fecha, hora, cupos disponibles, precio opcional).
 - **Reservation** → vínculo entre usuario y viaje (estado, fecha de reserva, comentarios).
-- **Notification** *(futuro)* → para manejar eventos en tiempo real con WebSocket o microservicio en Go.
+- **Notification** _(futuro)_ → para manejar eventos en tiempo real con WebSocket o microservicio en Go.
 
 ---
 
@@ -76,14 +76,195 @@ Copiar código
 Copilot, tu rol es actuar como **asistente técnico** para desarrollar este backend.  
 Sigue estas reglas:
 
-1. Escribe código limpio, modular y fácil de probar.  
-2. Aplica principios **DDD (Domain-Driven Design)** cuando tenga sentido.  
-3. Sugiere siempre pruebas unitarias básicas con JUnit o Mockito.  
-4. Usa DTOs para evitar exponer directamente entidades de dominio.  
-5. Configura CORS para permitir comunicación desde el frontend Flutter.  
-6. Todos los endpoints deben devolver respuestas con formato JSON y `ResponseEntity`.  
-7. Documenta los endpoints con **Swagger/OpenAPI**.  
-8. No uses hardcoded secrets ni claves de Firebase en el código.
+1. Escribe código limpio, modular y fácil de probar.
+2. Aplica principios **DDD (Domain-Driven Design)** cuando tenga sentido.
+3. Usa DTOs para evitar exponer directamente entidades de dominio.
+4. Configura CORS para permitir comunicación desde el frontend Flutter.
+5. Todos los endpoints deben devolver respuestas con formato JSON y `ResponseEntity`.
+6. Documenta los endpoints con **Swagger/OpenAPI**.
+7. No uses hardcoded secrets ni claves de Firebase en el código.
+8. Antes de crear un documento revisa si este ya existe para evitar duplicados.
+
+Revisar Documentos 
+
+PS C:\Users\omaroalvaradoc\Documents\Personal\Proyectos\MELI\inventory-service\src> tree /F                                            
+Listado de rutas de carpetas
+El número de serie del volumen es B2DB-78BF
+C:.
+├───main
+│   ├───java
+│   │   └───com
+│   │       └───meli
+│   │           └───inventory_service
+│   │               │   InventoryServiceApplication.java
+│   │               │   
+│   │               ├───application
+│   │               │   ├───dto
+│   │               │   │       ReserveRequest.java
+│   │               │   │       ReserveResponse.java
+│   │               │   │       
+│   │               │   ├───jobs
+│   │               │   │       ReservationExpirationJob.java
+│   │               │   │       
+│   │               │   └───service
+│   │               │           BookingUseCase.java
+│   │               │           GoogleAuthService.java
+│   │               │           InventoryUseCase.java.bak
+│   │               │           ProductService.java
+│   │               │
+│   │               ├───config
+│   │               │       ApplicationConfig.java
+│   │               │       JacksonConfig.java
+│   │               │       JwtProperties.java
+│   │               │       OpenAPIConfig.java
+│   │               │       SecurityConfig.java
+│   │               │
+│   │               ├───domain
+│   │               │   ├───exception
+│   │               │   │       ProductDomainException.java
+│   │               │   │
+│   │               │   ├───model
+│   │               │   │       OutboxMessage.java
+│   │               │   │       Permission.java
+│   │               │   │       ProcessedMessage.java
+│   │               │   │       Product.java
+│   │               │   │       Reservation.java
+│   │               │   │       Role.java
+│   │               │   │       ServicePost.java
+│   │               │   │       StoreInventory.java
+│   │               │   │       UpdateStockRequest.java
+│   │               │   │       User.java
+│   │               │   │
+│   │               │   └───ports
+│   │               │       ├───in
+│   │               │       │       BookingPort.java
+│   │               │       │       CreateReservationCommand.java
+│   │               │       │       CreateServicePostCommand.java
+│   │               │       │       InventoryUseCasePort.java
+│   │               │       │       ProductUseCase.java
+│   │               │       │
+│   │               │       └───out
+│   │               │               InventoryPort.java
+│   │               │               OutboxPort.java
+│   │               │               ProcessedMessagePort.java
+│   │               │               ProductPort.java
+│   │               │               ReservationPort.java
+│   │               │               ServicePostPort.java
+│   │               │
+│   │               └───infrastructure
+│   │                   ├───config
+│   │                   │       RedisConfig.java
+│   │                   │       RetryConfiguration.java
+│   │                   │
+│   │                   ├───messaging
+│   │                   │       KafkaOutboxPublisher.java
+│   │                   │
+│   │                   ├───metrics
+│   │                   │       InventoryGauges.java
+│   │                   │       InventoryMetrics.java
+│   │                   │
+│   │                   ├───persistence
+│   │                   │   │   JpaInventoryAdapter.java
+│   │                   │   │   JpaOutboxAdapter.java
+│   │                   │   │   JpaProcessedMessageAdapter.java
+│   │                   │   │   JpaProductAdapter.java
+│   │                   │   │   JpaReservationAdapter.java.bak
+│   │                   │   │   StoreInventoryRepository.java
+│   │                   │   │
+│   │                   │   ├───adapter
+│   │                   │   │       ReservationAdapter.java
+│   │                   │   │       ServicePostAdapter.java
+│   │                   │   │
+│   │                   │   └───spring
+│   │                   │           OutboxRepository.java
+│   │                   │           PermissionRepository.java
+│   │                   │           ProcessedMessageRepository.java
+│   │                   │           ProductRepository.java
+│   │                   │           ReservationJpaRepository.java
+│   │                   │           ReservationRepository.java
+│   │                   │           RoleRepository.java
+│   │                   │           ServicePostJpaRepository.java
+│   │                   │           UserRepository.java
+│   │                   │
+│   │                   ├───rest
+│   │                   │   │   AuthController.java
+│   │                   │   │   CreatePostRequest.java
+│   │                   │   │   CreateReservationRequest.java
+│   │                   │   │   InventoryController.java
+│   │                   │   │   PostController.java
+│   │                   │   │   ProductController.java
+│   │                   │   │   ReservationController.java
+│   │                   │   │   ReservationResponse.java
+│   │                   │   │   ServicePostResponse.java
+│   │                   │   │
+│   │                   │   └───dto
+│   │                   │           GoogleAuthRequest.java
+│   │                   │           GoogleAuthResponse.java
+│   │                   │           GoogleTokenInfo.java
+│   │                   │           LoginRequest.java
+│   │                   │           LoginResponse.java
+│   │                   │           ProductRequest.java
+│   │                   │           ProductResponse.java
+│   │                   │           RefreshTokenRequest.java
+│   │                   │           RegisterRequest.java
+│   │                   │           ReserveRequest.java
+│   │                   │           ReserveResponse.java
+│   │                   │           StoreInventory.java
+│   │                   │           StoreInventoryResponse.java
+│   │                   │           UpdateStockRequest.java
+│   │                   │
+│   │                   └───security
+│   │                       │   SecurityConfig.java
+│   │                       │   UserDetailsServiceImpl.java
+│   │                       │
+│   │                       └───jwt
+│   │                               JwtAuthenticationFilter.java
+│   │                               JwtTokenProvider.java
+│   │
+│   └───resources
+│       │   application-dev.properties
+│       │   application-dev.yml
+│       │   application-jwt.yml
+│       │   application.properties
+│       │   application.yml
+│       │   data-security.sql
+│       │   data-transport.sql
+│       │   data.sql
+│       │   logback-spring.xml
+│       │
+│       ├───db
+│       │   └───migration
+│       │           V1__initial_schema.sql
+│       │           V3__add_google_oauth_fields.sql
+│       │           V3__add_version_to_reservations.sql
+│       │           V4__add_performance_indexes.sql
+│       │
+│       ├───static
+│       └───templates
+└───test
+    ├───java
+    │   └───com
+    │       └───meli
+    │           └───inventory_service
+    │               │   InventoryServiceApplicationTests.java
+    │               │
+    │               ├───application
+    │               │   └───service
+    │               │           BookingUseCaseConcurrencyIT.java
+    │               │           BookingUseCaseTest.java
+    │               │           GoogleAuthServiceTest.java
+    │               │           InventoryUseCaseConcurrencyIT.java.bak
+    │               │           InventoryUseCaseTest.java.bak
+    │               │
+    │               ├───infrastructure
+    │               │   └───rest
+    │               ├───integration
+    │               ├───load
+    │               │       InventoryLoadTest.java
+    │               │
+    │               └───performance
+    └───resources
+            test-data.sql
 
 ---
 

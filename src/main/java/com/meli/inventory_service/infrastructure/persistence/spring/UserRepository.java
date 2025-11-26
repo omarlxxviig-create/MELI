@@ -32,6 +32,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     /**
+     * Busca un usuario por su Google Sub.
+     *
+     * @param googleSub Sub de Google
+     * @return Optional con el usuario si existe
+     */
+    Optional<User> findByGoogleSub(String googleSub);
+
+    /**
      * Verifica si existe un usuario con el nombre de usuario dado.
      *
      * @param username nombre de usuario a verificar

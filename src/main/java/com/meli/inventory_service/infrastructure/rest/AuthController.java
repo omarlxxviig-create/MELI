@@ -1,5 +1,6 @@
 package com.meli.inventory_service.infrastructure.rest;
 
+import com.meli.inventory_service.application.service.GoogleAuthService;
 import com.meli.inventory_service.domain.model.Role;
 import com.meli.inventory_service.domain.model.User;
 import com.meli.inventory_service.infrastructure.persistence.spring.RoleRepository;
@@ -9,6 +10,7 @@ import com.meli.inventory_service.infrastructure.security.jwt.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
  * Controlador REST para autenticación y gestión de usuarios.
  * Proporciona endpoints para login, registro y refresh de tokens.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Endpoints para autenticación y registro de usuarios")
@@ -49,6 +52,64 @@ public class AuthController {
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+
+    @Autowired
+    private GoogleAuthService googleAuthService;
+
+    /**
+     * Endpoint para autenticación con Google OAuth 2.0.
+     *
+     * @param request datos con el ID token de Google
+     * @return respuesta con JWT interno y datos del usuario
+     */
+    @PostMapping("/v1/auth/google")
+    @Operation(summary = "Login con Google", description = "Autentica un usuario usando Google OAuth 2.0 y retorna JWT interno")
+    public ResponseEntity<?> authenticateWithGoogle(@Valid @RequestBody GoogleAuthRequest request) {
+        log.info("Google authentication request received");
+
+        try {
+            // 1. Validar el ID token de Google
+            GoogleTokenInfo tokenInfo = googleAuthService.validateGoogleToken(request.getIdToken());
+
+            // 2. Buscar o crear usuario
+            User user = googleAuthService.loginOrCreateUserFromGoogle(tokenInfo);
+
+            // 3. Extraer roles del usuario
+            List<String> roles = user.getRoles().stream()
+                    .map(role -> role.getName().name())
+                    .collect(Collectors.toList());
+
+            // 4. Generar JWT interno del sistema
+            String jwtToken = tokenProvider.generateTokenFromUsername(user.getUsername(), roles);
+
+            // 5. Preparar respuesta
+            GoogleAuthResponse.UserInfo userInfo = new GoogleAuthResponse.UserInfo(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getFirstName() + " " + user.getLastName(),
+                    user.getPictureUrl(),
+                    roles);
+
+            GoogleAuthResponse response = new GoogleAuthResponse(jwtToken, "Bearer", userInfo);
+
+            log.info("Google authentication successful for user: {} (ID: {})", user.getUsername(), user.getId());
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            log.error("Google authentication failed: {}", e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Invalid Google token");
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+
+        } catch (Exception e) {
+            log.error("Unexpected error during Google authentication: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Authentication failed");
+            error.put("message", "An unexpected error occurred during Google authentication");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 
     /**
      * Endpoint para login de usuarios.

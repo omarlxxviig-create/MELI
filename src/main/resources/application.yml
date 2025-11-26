@@ -49,6 +49,11 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
 
+  # # Deshabilitar Redis temporalmente en desarrollo
+  # data:
+  #   redis:
+  #     enabled: false # ← AÑADIR ESTA LÍNEA
+
 # Logging
 logging:
   level:
