@@ -81,3 +81,7 @@ Documentación histórica de troubleshooting archivada en **`archive/`** para re
 **Última Actualización**: 27 de Octubre, 2025  
 **Servicio**: Transport Booking API (anteriormente Inventory Service)  
 **Versión**: 0.0.1-SNAPSHOT
+
+---
+**iniciar proyecto**: .\mvnw spring-boot:run
+**iniciar compose**: docker compose up
